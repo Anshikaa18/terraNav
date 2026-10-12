@@ -1,0 +1,396 @@
+{
+  "info": {
+    "name": "TerraNav AI — Member 3 Complete Backend API Suite",
+    "_postman_id": "terranav-ai-member-3-collection",
+    "description": "Complete Postman test suite for TerraNav AI Member 3 backend, dynamic routing, authentication, and microservices.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "jwtToken", "value": "", "type": "string" },
+    { "key": "savedPlaceId", "value": "1", "type": "string" },
+    { "key": "incidentId", "value": "1", "type": "string" },
+    { "key": "historyId", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 Health",
+      "item": [
+        {
+          "name": "GET Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Authentication",
+      "item": [
+        {
+          "name": "POST Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('jwtToken', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"testuser@terranav.ai\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "POST Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('jwtToken', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@terranav.ai\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "GET Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Saved Places",
+      "item": [
+        {
+          "name": "POST Create Saved Place",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('savedPlaceId', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Indiranagar Metro Station\",\n  \"latitude\": 12.9784,\n  \"longitude\": 77.6408,\n  \"address\": \"CMH Road, Indiranagar, Bengaluru\",\n  \"category\": \"transit\"\n}"
+            },
+            "url": "{{baseUrl}}/api/saved"
+          }
+        },
+        {
+          "name": "GET List Saved Places",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": "{{baseUrl}}/api/saved"
+          }
+        },
+        {
+          "name": "GET Saved Place By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": "{{baseUrl}}/api/saved/{{savedPlaceId}}"
+          }
+        },
+        {
+          "name": "PUT Update Saved Place",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Indiranagar Metro Station (Updated)\",\n  \"latitude\": 12.9784,\n  \"longitude\": 77.6408,\n  \"address\": \"CMH Road, Indiranagar, Bengaluru, Karnataka 560038\",\n  \"category\": \"work\"\n}"
+            },
+            "url": "{{baseUrl}}/api/saved/{{savedPlaceId}}"
+          }
+        },
+        {
+          "name": "DELETE Saved Place",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": "{{baseUrl}}/api/saved/{{savedPlaceId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Route History",
+      "item": [
+        {
+          "name": "POST Log Route History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('historyId', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin_lat\": 12.9756,\n  \"origin_lng\": 77.6066,\n  \"origin_name\": \"MG Road\",\n  \"dest_lat\": 12.9352,\n  \"dest_lng\": 77.6245,\n  \"dest_name\": \"Koramangala\",\n  \"transport_mode\": \"car\",\n  \"total_distance_meters\": 6850,\n  \"total_duration_seconds\": 1120,\n  \"traditional_duration_seconds\": 1480,\n  \"time_saved_seconds\": 360\n}"
+            },
+            "url": "{{baseUrl}}/api/history"
+          }
+        },
+        {
+          "name": "GET List Route History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": "{{baseUrl}}/api/history?limit=10"
+          }
+        },
+        {
+          "name": "GET Route History Detail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": "{{baseUrl}}/api/history/{{historyId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Incidents",
+      "item": [
+        {
+          "name": "POST Report Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set('incidentId', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chunkId\": \"CHUNK_104\",\n  \"type\": \"accident\",\n  \"description\": \"Two-wheeler skid causing lane restriction\",\n  \"latitude\": 12.9550,\n  \"longitude\": 77.6050\n}"
+            },
+            "url": "{{baseUrl}}/api/incidents"
+          }
+        },
+        {
+          "name": "GET List Active Incidents",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/incidents"
+          }
+        },
+        {
+          "name": "GET Incident By ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/incidents/{{incidentId}}"
+          }
+        },
+        {
+          "name": "PUT Update Incident Status (Clear)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"cleared\"\n}"
+            },
+            "url": "{{baseUrl}}/api/incidents/{{incidentId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Dynamic Directions",
+      "item": [
+        {
+          "name": "POST Dynamic Directions (Standard)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": {\n    \"lat\": 12.9716,\n    \"lng\": 77.5946\n  },\n  \"destination\": {\n    \"lat\": 12.9352,\n    \"lng\": 77.6245\n  },\n  \"mode\": \"car\"\n}"
+            },
+            "url": "{{baseUrl}}/api/directions/dynamic"
+          }
+        },
+        {
+          "name": "POST Dynamic Directions with Incident Simulation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": {\n    \"lat\": 12.9716,\n    \"lng\": 77.5946\n  },\n  \"destination\": {\n    \"lat\": 12.9352,\n    \"lng\": 77.6245\n  },\n  \"mode\": \"car\",\n  \"simulatedIncident\": {\n    \"chunkId\": \"CHUNK_104\",\n    \"type\": \"accident\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/directions/dynamic"
+          }
+        },
+        {
+          "name": "POST Dynamic Directions (Motorcycle Mode)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": {\n    \"lat\": 12.9716,\n    \"lng\": 77.5946\n  },\n  \"destination\": {\n    \"lat\": 12.9352,\n    \"lng\": 77.6245\n  },\n  \"mode\": \"motorcycle\"\n}"
+            },
+            "url": "{{baseUrl}}/api/directions/dynamic"
+          }
+        },
+        {
+          "name": "POST Dynamic Directions (Roadblock Reroute Detour)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": {\n    \"lat\": 12.9716,\n    \"lng\": 77.5946\n  },\n  \"destination\": {\n    \"lat\": 12.9352,\n    \"lng\": 77.6245\n  },\n  \"mode\": \"car\",\n  \"simulatedIncident\": {\n    \"chunkId\": \"CHUNK_104\",\n    \"type\": \"roadblock\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/directions/dynamic"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 External Services",
+      "item": [
+        {
+          "name": "GET Geocode Search (Nominatim)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/services/geocode?q=MG+Road+Bangalore&limit=3"
+          }
+        },
+        {
+          "name": "GET Reverse Geocode (Nominatim)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/services/reverse?lat=12.9756&lng=77.6066"
+          }
+        },
+        {
+          "name": "GET Nearby POIs (Overpass)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/services/poi?lat=12.9756&lng=77.6066&radius=1000&category=fuel|hospital"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Negative Tests",
+      "item": [
+        {
+          "name": "Negative: Invalid Origin Coordinates (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": { \"lat\": 999.0, \"lng\": 77.5946 },\n  \"destination\": { \"lat\": 12.9352, \"lng\": 77.6245 }\n}"
+            },
+            "url": "{{baseUrl}}/api/directions/dynamic"
+          }
+        },
+        {
+          "name": "Negative: Protected Route Without Token (401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Negative: Protected Route with Invalid Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer invalid_malformed_token_123" }],
+            "url": "{{baseUrl}}/api/saved"
+          }
+        },
+        {
+          "name": "Negative: Non-existent Resource (404)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
+            "url": "{{baseUrl}}/api/saved/99999"
+          }
+        }
+      ]
+    }
+  ]
+}
