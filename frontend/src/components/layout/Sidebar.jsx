@@ -1,77 +1,155 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Compass, Navigation, Bookmark, History, Settings } from 'lucide-react';
+import { Map, Layers, Bookmark, History, Settings } from 'lucide-react';
+import { useMap } from '../../context/MapContext.jsx';
+
+const items = [
+  { label: 'Map', path: '/', icon: Map },
+  { label: 'Layers', path: '#layers', icon: Layers },
+  { label: 'Saved', path: '/saved', icon: Bookmark },
+  { label: 'History', path: '/history', icon: History },
+];
 
 export default function Sidebar() {
-  const items = [
-    { label: 'Explore', path: '/', icon: Compass },
-    { label: 'Directions', path: '/directions', icon: Navigation },
-    { label: 'Saved', path: '/saved', icon: Bookmark },
-    { label: 'History', path: '/history', icon: History },
-    { label: 'Settings', path: '/settings', icon: Settings },
-  ];
+  const { activeLayer, setActiveLayer, isSidebarOpen } = useMap();
+
+  const handleLayersClick = (e) => {
+    e.preventDefault();
+    setActiveLayer((prev) => (prev === 'osm' ? 'light' : prev === 'light' ? 'voyager' : prev === 'voyager' ? 'dark' : 'osm'));
+  };
 
   return (
     <>
-      {/* Desktop Vertical Slim Sidebar (Hidden on mobile) */}
-      <aside className="hidden lg:flex flex-col items-center justify-between w-14 bg-[#0d1215] border-r border-[#29353a] py-4 z-[400] flex-shrink-0 select-none">
-        <div className="flex flex-col items-center space-y-3">
-          {items.slice(0, 4).map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center w-10 h-10 rounded transition-all duration-200 ${
-                    isActive
-                      ? 'bg-[#63e7ee]/15 text-[#63e7ee] border border-[#63e7ee]/60 shadow-[0_0_12px_rgba(99,231,238,0.25)]'
-                      : 'text-[#8c9a9c] hover:bg-[#162024] hover:text-[#edf3f1] border border-transparent'
-                  }`
-                }
-                title={item.label}
-              >
-                <Icon className="w-4 h-4" />
-              </NavLink>
-            );
-          })}
+      {/* Desktop Vertical Slim Sidebar matching Image 2 */}
+      <aside
+        id="navigation-sidebar"
+        aria-hidden={!isSidebarOpen}
+        inert={isSidebarOpen ? undefined : ''}
+        className={`hidden lg:flex flex-col items-center justify-between bg-[var(--surface)] z-[400] flex-shrink-0 select-none shadow-xs transition-all duration-300 ease-in-out ${
+          isSidebarOpen
+            ? 'w-16 opacity-100 translate-x-0 border-r border-[var(--border)] py-3'
+            : 'w-0 opacity-0 -translate-x-full border-r-0 pointer-events-none overflow-hidden px-0 py-0 m-0'
+        }`}
+      >
+        <div className="flex flex-col items-center space-y-2 w-full px-2">
+          {/* 1. Map */}
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center w-12 h-13 rounded-xl transition-all duration-150 gap-0.5 text-[10px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline)] ${
+                isActive
+                  ? 'relative bg-[var(--primary-soft)] text-[var(--primary)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-[var(--primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]'
+              }`
+            }
+            title="Map"
+          >
+            <Map className="w-4 h-4" />
+            <span className="text-[10px] tracking-tight">Map</span>
+          </NavLink>
+
+          {/* 2. Layers */}
+          <button
+            type="button"
+            onClick={handleLayersClick}
+            className="flex flex-col items-center justify-center w-12 h-13 rounded-xl border-0 bg-transparent shadow-none transition-all duration-150 gap-0.5 text-[10px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline)]"
+            title={`Current Layer: ${activeLayer} (Click to switch)`}
+          >
+            <Layers className="w-4 h-4" />
+            <span className="text-[10px] tracking-tight">Layers</span>
+          </button>
+
+          {/* 3. Saved */}
+          <NavLink
+            to="/saved"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center w-12 h-13 rounded-xl transition-all duration-150 gap-0.5 text-[10px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline)] ${
+                isActive
+                  ? 'relative bg-[var(--primary-soft)] text-[var(--primary)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-[var(--primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]'
+              }`
+            }
+            title="Saved"
+          >
+            <Bookmark className="w-4 h-4" />
+            <span className="text-[10px] tracking-tight">Saved</span>
+          </NavLink>
+
+          {/* 4. History */}
+          <NavLink
+            to="/history"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center w-12 h-13 rounded-xl transition-all duration-150 gap-0.5 text-[10px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline)] ${
+                isActive
+                  ? 'relative bg-[var(--primary-soft)] text-[var(--primary)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-[var(--primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]'
+              }`
+            }
+            title="History"
+          >
+            <History className="w-4 h-4" />
+            <span className="text-[10px] tracking-tight">History</span>
+          </NavLink>
         </div>
 
-        <div>
+        {/* 5. Settings */}
+        <div className="w-full px-2">
           <NavLink
             to="/settings"
             className={({ isActive }) =>
-              `flex items-center justify-center w-10 h-10 rounded transition-all duration-200 ${
+              `flex flex-col items-center justify-center w-12 h-13 rounded-xl transition-all duration-150 gap-0.5 text-[10px] font-semibold mx-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline)] ${
                 isActive
-                  ? 'bg-[#63e7ee]/15 text-[#63e7ee] border border-[#63e7ee]/60 shadow-[0_0_12px_rgba(99,231,238,0.25)]'
-                  : 'text-[#8c9a9c] hover:bg-[#162024] hover:text-[#edf3f1] border border-transparent'
+                  ? 'relative bg-[var(--primary-soft)] text-[var(--primary)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-[var(--primary)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]'
               }`
             }
             title="Settings"
           >
             <Settings className="w-4 h-4" />
+            <span className="text-[10px] tracking-tight">Settings</span>
           </NavLink>
         </div>
       </aside>
 
-      {/* Mobile Bottom Navigation Bar (Hidden on desktop) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-[#0d1215]/95 backdrop-blur-md border-t border-[#29353a] flex items-center justify-around z-[450] px-2 shadow-lg">
-        {items.map((item) => {
+      {/* Mobile Bottom Navigation Bar matching Figma tokens */}
+      <nav
+        id="mobile-navigation"
+        aria-label="Mobile navigation"
+        aria-hidden={!isSidebarOpen}
+        inert={isSidebarOpen ? undefined : ''}
+        className={`lg:hidden fixed bottom-0 left-0 right-0 min-h-14 pb-[env(safe-area-inset-bottom)] bg-[var(--surface)]/95 backdrop-blur-md border-t border-[var(--border)] flex items-center justify-around z-[450] px-2 shadow-lg transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'}`}
+      >
+        {[...items, { label: 'Settings', path: '/settings', icon: Settings }].map((item) => {
           const Icon = item.icon;
+          if (item.path === '#layers') {
+            return (
+              <button
+                key={item.path}
+                type="button"
+                onClick={handleLayersClick}
+                className="flex flex-col items-center justify-center flex-1 min-h-[48px] border-0 bg-transparent shadow-none py-1 transition-all rounded-lg text-[var(--text-secondary)] hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline)]"
+              >
+                <Icon className="w-4 h-4" />
+                <span className="text-[10px] font-medium mt-0.5">{item.label}</span>
+              </button>
+            );
+          }
           return (
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.path === '/'}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center flex-1 py-1 transition-all ${
+                `flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 transition-all rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline)] ${
                   isActive
-                    ? 'text-[#63e7ee] font-semibold'
-                    : 'text-[#8c9a9c] hover:text-[#edf3f1]'
+                    ? 'text-[var(--primary)] font-bold'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text)]'
                 }`
               }
             >
               <Icon className="w-4 h-4" />
-              <span className="text-[9px] font-mono mt-0.5">{item.label}</span>
+              <span className="text-[10px] font-medium mt-0.5">{item.label}</span>
             </NavLink>
           );
         })}

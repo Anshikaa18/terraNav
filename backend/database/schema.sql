@@ -13,6 +13,7 @@ USE `terranav_db`;
 
 -- Drop existing tables in reverse dependency order if recreating
 DROP TABLE IF EXISTS `incidents`;
+DROP TABLE IF EXISTS `traffic_observations`;
 DROP TABLE IF EXISTS `route_history`;
 DROP TABLE IF EXISTS `saved_places`;
 DROP TABLE IF EXISTS `users`;
@@ -48,6 +49,8 @@ CREATE TABLE `saved_places` (
   `longitude` DECIMAL(11, 8) NOT NULL,
   `address` VARCHAR(255) NULL,
   `category` VARCHAR(50) DEFAULT 'favorite',
+  `collection_name` VARCHAR(100) NOT NULL DEFAULT 'Favorites',
+  `notes` TEXT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   -- Foreign Keys & Indexes
@@ -71,12 +74,12 @@ CREATE TABLE `route_history` (
   `dest_lat` DECIMAL(10, 8) NOT NULL,
   `dest_lng` DECIMAL(11, 8) NOT NULL,
   `dest_name` VARCHAR(255) NULL,
-  `transport_mode` ENUM('car', 'motorcycle', 'pedestrian') NOT NULL DEFAULT 'car',
+  `transport_mode` ENUM('car', 'motorcycle', 'bicycle', 'pedestrian') NOT NULL DEFAULT 'car',
   `total_distance_meters` INT NOT NULL,
   `total_duration_seconds` INT NOT NULL,
   `traditional_duration_seconds` INT NOT NULL,
   `time_saved_seconds` INT NOT NULL DEFAULT 0,
-  `simulated_incident` JSON NULL,
+  `simulated_incident` LONGTEXT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   -- Foreign Keys & Indexes
@@ -111,6 +114,31 @@ CREATE TABLE `incidents` (
   INDEX `idx_incidents_chunk` (`chunk_id`),
   INDEX `idx_incidents_status` (`status`),
   INDEX `idx_incidents_type` (`incident_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------------------------
+-- 5. traffic_observations
+-- Provider snapshots. `observed_density_vehicles_per_km` remains NULL unless an
+-- approved source provides a real density measurement; speed/jam factor are not
+-- silently relabelled as density.
+-- ------------------------------------------------------------------------------
+CREATE TABLE `traffic_observations` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `segment_id` VARCHAR(96) NOT NULL,
+  `provider_segment_reference` VARCHAR(255) NULL,
+  `observed_speed_kmh` DECIMAL(8,2) NULL,
+  `free_flow_speed_kmh` DECIMAL(8,2) NULL,
+  `jam_factor` DECIMAL(5,2) NULL,
+  `observed_density_vehicles_per_km` DECIMAL(10,2) NULL,
+  `geometry` LONGTEXT NULL,
+  `observed_at` DATETIME NULL,
+  `fetched_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `source` VARCHAR(100) NOT NULL,
+  `confidence` DECIMAL(6,3) NULL,
+  `model_version` VARCHAR(100) NULL,
+  `predicted_at` DATETIME NULL,
+  INDEX `idx_traffic_segment_time` (`segment_id`, `fetched_at`),
+  INDEX `idx_traffic_provider_reference` (`provider_segment_reference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------------------------

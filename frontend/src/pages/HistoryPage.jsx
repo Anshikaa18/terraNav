@@ -3,11 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { History, Search, Trash2, MapPin, ArrowRight, Loader2 } from 'lucide-react';
 import { historyService } from '../services/historyService.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useMap } from '../context/MapContext.jsx';
 
 export default function HistoryPage() {
   const { isAuthenticated } = useAuth();
-  const { selectPlace } = useMap();
   const navigate = useNavigate();
 
   const [history, setHistory] = useState([]);
@@ -54,36 +52,36 @@ export default function HistoryPage() {
   };
 
   const handleSearchAgain = (item) => {
-    if (item.latitude && item.longitude) {
-      selectPlace({
-        id: item.selected_place_id || `hist_${item.id}`,
-        name: item.selected_place_name || item.query,
-        display_name: item.selected_place_name || item.query,
-        lat: Number(item.latitude),
-        lon: Number(item.longitude),
-      });
-      navigate('/');
-    } else {
-      navigate(`/search?q=${encodeURIComponent(item.query)}`);
-    }
+    const { origin, destination } = item;
+    if (!origin || !destination || !Number.isFinite(origin.lat) || !Number.isFinite(origin.lon) || !Number.isFinite(destination.lat) || !Number.isFinite(destination.lon)) return;
+    const params = new URLSearchParams({
+      from: `${origin.lat},${origin.lon}`,
+      fromName: origin.name || `${origin.lat}, ${origin.lon}`,
+      to: `${destination.lat},${destination.lon}`,
+      toName: destination.name || `${destination.lat}, ${destination.lon}`,
+      mode: item.mode === 'car' ? 'driving' : (item.mode || 'driving')
+    });
+    navigate(`/directions?${params.toString()}`);
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="h-[calc(100vh-62px)] flex items-center justify-center p-4 bg-[#090c0f]">
-        <div className="w-full max-w-md p-8 rounded bg-[#11171b]/95 border border-[#29353a] shadow-float text-center font-mono">
-          <History className="w-10 h-10 mx-auto text-[#63e7ee] mb-4" />
-          <h2 className="font-condensed text-2xl font-bold tracking-wide text-[#edf3f1]">
-            QUERY LOGS & HISTORY
+      <div className="h-[calc(100vh-64px)] flex items-center justify-center p-4 bg-[var(--background)]">
+        <div className="w-full max-w-md p-8 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)] text-center">
+          <span className="inline-grid place-items-center w-12 h-12 rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)] mb-4 mx-auto border border-[var(--outline)]/40">
+            <History className="w-6 h-6" />
+          </span>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--text)]">
+            Query Logs & History
           </h2>
-          <p className="text-xs text-[#8c9a9c] mt-2 mb-6 leading-relaxed">
-            Sign in to track your past queries, telemetry lookups, and routing destinations.
+          <p className="text-xs text-[var(--text-secondary)] mt-2 mb-6 leading-relaxed">
+            Sign in to track your past searches, telemetry lookups, and recent routing destinations.
           </p>
           <button
             onClick={() => navigate('/login')}
-            className="w-full py-2.5 rounded font-mono text-xs font-bold uppercase tracking-wider text-[#071014] bg-[#63e7ee] hover:bg-[#7ef1f7] border border-[#63e7ee] shadow-[0_0_10px_rgba(99,231,238,0.25)] transition-all"
+            className="w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[var(--primary)] hover:bg-[var(--primary-strong)] transition-all shadow-sm"
           >
-            SIGN IN
+            Sign In
           </button>
         </div>
       </div>
@@ -91,14 +89,14 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-62px)] flex flex-col max-w-3xl mx-auto p-4 lg:p-8 overflow-y-auto">
+    <div className="h-[calc(100vh-64px)] flex flex-col max-w-3xl mx-auto p-4 lg:p-8 overflow-y-auto bg-[var(--background)] text-[var(--text)]">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <span className="font-mono text-[9px] text-[#63e7ee] tracking-[1.5px] uppercase">QUERY LOGS</span>
-          <h1 className="font-condensed text-3xl font-bold tracking-wide text-[#edf3f1]">
-            SEARCH & TELEMETRY HISTORY
+          <span className="text-[10px] text-[var(--primary)] font-bold tracking-wider uppercase">Query Logs</span>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text)] mt-0.5">
+            Search History
           </h1>
-          <p className="font-mono text-xs text-[#8c9a9c] mt-0.5">
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
             Recently queried coordinates and searched destinations
           </p>
         </div>
@@ -106,52 +104,52 @@ export default function HistoryPage() {
         {history.length > 0 && (
           <button
             onClick={handleClearAll}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider text-[#ff5d61] bg-[#172125] border border-[#ff5d61]/40 hover:bg-[#ff5d61]/20 transition-colors"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider text-[var(--red)] bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--red)]/10 transition-colors shadow-sm"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>CLEAR ALL</span>
+            <span>Clear All</span>
           </button>
         )}
       </div>
 
       {loading ? (
-        <div className="flex-1 flex items-center justify-center p-12 font-mono text-[#63e7ee]">
+        <div className="flex-1 flex items-center justify-center p-12 text-[var(--primary)]">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          <span className="text-xs uppercase">LOADING HISTORY LOGS...</span>
+          <span className="text-xs font-semibold uppercase">Loading history logs...</span>
         </div>
       ) : history.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center rounded border border-[#29353a] bg-[#11171b]/60 font-mono">
-          <Search className="w-10 h-10 text-[#586769] mb-3" />
-          <h3 className="text-sm font-bold text-[#edf3f1] uppercase">
-            NO QUERY LOGS FOUND
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+          <Search className="w-10 h-10 text-[var(--text-tertiary)] mb-3" />
+          <h3 className="text-base font-bold text-[var(--text)]">
+            No query logs found
           </h3>
-          <p className="text-xs text-[#8c9a9c] mt-1 max-w-xs leading-relaxed">
-            Any addresses, coordinates, or landmarks you search will appear here for fast re-routing.
+          <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-xs leading-relaxed">
+            Any addresses, coordinates, or landmarks you search will appear here for quick access.
           </p>
         </div>
       ) : (
-        <div className="rounded bg-[#11171b] border border-[#29353a] overflow-hidden divide-y divide-[#29353a] font-mono">
+        <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] overflow-hidden divide-y divide-[var(--border)] shadow-[var(--shadow-sm)]">
           {history.map((item) => (
             <div
               key={item.id}
               onClick={() => handleSearchAgain(item)}
-              className="p-3.5 flex items-center justify-between hover:bg-[#162024] cursor-pointer transition-colors group"
+              className="p-3.5 flex items-center justify-between hover:bg-[var(--surface-subtle)] cursor-pointer transition-colors group"
             >
               <div className="flex items-center space-x-3 min-w-0">
-                <div className="p-2 rounded bg-[#172125] border border-[#38474b] text-[#63e7ee] group-hover:border-[#63e7ee] transition-colors flex-shrink-0">
-                  {item.latitude ? <MapPin className="w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
+                <div className="p-2.5 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] text-[var(--primary)] group-hover:border-[var(--outline)] transition-colors flex-shrink-0">
+                  {item.origin && item.destination ? <MapPin className="w-4 h-4" /> : <Search className="w-4 h-4" />}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-[#edf3f1] group-hover:text-[#63e7ee] transition-colors truncate">
+                  <p className="text-xs font-bold text-[var(--text)] group-hover:text-[var(--primary)] transition-colors truncate">
                     {item.query}
                   </p>
                   {item.selected_place_name && item.selected_place_name !== item.query && (
-                    <p className="text-[10px] text-[#8c9a9c] truncate">
+                    <p className="text-[11px] text-[var(--text-secondary)] truncate">
                       {item.selected_place_name}
                     </p>
                   )}
-                  <span className="text-[9px] text-[#586769]">
-                    {new Date(item.created_at).toLocaleDateString()} at {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <span className="text-[10px] text-[var(--text-tertiary)] font-mono">
+                    {item.timestamp ? `${new Date(item.timestamp).toLocaleDateString()} at ${new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Date unavailable'}
                   </span>
                 </div>
               </div>
@@ -161,11 +159,12 @@ export default function HistoryPage() {
                   type="button"
                   onClick={(e) => handleDeleteItem(e, item.id)}
                   title="Remove from history"
-                  className="p-1.5 rounded text-[#8c9a9c] hover:text-[#ff5d61] hover:bg-[#162024] transition-colors"
+                  aria-label="Remove item"
+                  className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--red)] hover:bg-[var(--surface-subtle)] transition-colors"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
-                <ArrowRight className="w-3.5 h-3.5 text-[#586769] group-hover:text-[#63e7ee] group-hover:translate-x-0.5 transition-all" />
+                <ArrowRight className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--primary)] group-hover:translate-x-0.5 transition-all" />
               </div>
             </div>
           ))}

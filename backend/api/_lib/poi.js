@@ -1,105 +1,80 @@
 /**
- * TerraNav AI — Overpass POI Discovery Adapter
- * Member 3: Backend Integration & Microservices
+ * ChunkFlow AI — TomTom POI Discovery Adapter
+ *
+ * The nearby-place API intentionally uses TomTom Search rather than the
+ * OpenStreetMap Overpass API. Map tiles can still use OpenStreetMap; this
+ * module only controls the places shown in search suggestions and category
+ * pills.
  */
 
-const axios = require('axios');
 const logger = require('./logging');
-const { BadRequestError } = require('./errors');
+const { BadRequestError, BadGatewayError } = require('./errors');
 const { isValidCoordinate } = require('./validation');
+const tomtomSearch = require('./tomtomSearchAdapter');
 
-const OVERPASS_BASE_URL = process.env.OVERPASS_BASE_URL || 'https://overpass-api.de/api/interpreter';
-const HTTP_TIMEOUT_MS = 6000;
-
-// Simple in-memory POI cache
 const poiCache = new Map();
+const CATEGORY_QUERIES = {
+  restaurants: 'restaurants',
+  cafes: 'cafes',
+  hospitals: 'hospitals',
+  pharmacy: 'pharmacies',
+  atms: 'ATMs',
+  petrol: 'petrol pumps',
+  bus: 'bus stops',
+  police: 'police stations',
+  hotels: 'hotels',
+  temples: 'temples',
+  malls: 'shopping malls',
+  colleges: 'colleges',
+  attractions: 'tourist attractions'
+};
 
-/**
- * Search nearby POIs (amenities, fuel, parking, hospitals) around coordinates
- * 
- * @param {Object} params
- * @param {number} params.lat Center latitude
- * @param {number} params.lng Center longitude
- * @param {number} [params.radiusMeters=1500] Search radius in meters
- * @param {string} [params.category='fuel|hospital|parking|restaurant'] Amenity filter
- */
-async function searchNearbyPOIs({ lat, lng, radiusMeters = 1500, category = 'fuel' }) {
+function toNearbyPlace(place, requestedCategory) {
+  const address = place.address?.freeformAddress
+    || place.address?.display_name
+    || place.displayName
+    || '';
+  return {
+    id: place.placeId || `tomtom-${place.latitude},${place.longitude}`,
+    name: place.displayName?.split(',')[0]?.trim() || 'Unnamed place',
+    displayName: place.displayName,
+    category: place.category || requestedCategory,
+    latitude: place.latitude,
+    longitude: place.longitude,
+    distanceMeters: place.distanceMeters,
+    distanceKm: place.distanceKm,
+    address,
+    tags: {},
+    provider: 'tomtom'
+  };
+}
+
+/** Search category suggestions around the supplied point with TomTom Search. */
+async function searchNearbyPOIs({ lat, lng, radiusMeters = 1500, category = 'petrol', limit = 15 }) {
   if (!isValidCoordinate(lat, lng)) {
     throw new BadRequestError(`Invalid coordinates for POI search: lat=${lat}, lng=${lng}`);
   }
 
   const radius = Math.min(5000, Math.max(200, parseInt(radiusMeters, 10) || 1500));
-  const safeCategory = category.replace(/[^a-zA-Z0-9_|]/g, '');
+  const resultLimit = Math.min(30, Math.max(1, parseInt(limit, 10) || 15));
+  const safeCategory = String(category || 'petrol').replace(/[^a-zA-Z0-9_|]/g, '');
+  const query = CATEGORY_QUERIES[safeCategory] || safeCategory.replace(/[|_]/g, ' ');
+  const cacheKey = `tomtom-poi:${Number(lat).toFixed(5)}:${Number(lng).toFixed(5)}:${radius}:${safeCategory}:${resultLimit}`;
 
-  const cacheKey = `poi:${Number(lat).toFixed(3)}:${Number(lng).toFixed(3)}:${radius}:${safeCategory}`;
-  if (poiCache.has(cacheKey)) {
-    return poiCache.get(cacheKey);
-  }
-
-  // Construct Overpass QL query
-  const query = `
-    [out:json][timeout:5];
-    (
-      node["amenity"~"${safeCategory}"](around:${radius},${lat},${lng});
-      node["tourism"~"${safeCategory}"](around:${radius},${lat},${lng});
-    );
-    out body 15;
-  `;
+  if (poiCache.has(cacheKey)) return poiCache.get(cacheKey);
 
   try {
-    const response = await axios.post(
-      OVERPASS_BASE_URL,
-      `data=${encodeURIComponent(query)}`,
-      {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: HTTP_TIMEOUT_MS
-      }
-    );
-
-    const elements = response.data && response.data.elements ? response.data.elements : [];
-    const results = elements.map(el => ({
-      id: el.id,
-      name: (el.tags && el.tags.name) || `Local ${el.tags ? el.tags.amenity || el.tags.tourism || 'POI' : 'POI'}`,
-      category: (el.tags && (el.tags.amenity || el.tags.tourism)) || 'amenity',
-      latitude: el.lat,
-      longitude: el.lon,
-      tags: el.tags || {}
-    }));
-
-    poiCache.set(cacheKey, results);
-    return results;
+    const results = await tomtomSearch.searchNearby(query, resultLimit, {
+      lat: Number(lat),
+      lng: Number(lng)
+    }, radius);
+    const places = results.map(place => toNearbyPlace(place, safeCategory));
+    poiCache.set(cacheKey, places);
+    return places;
   } catch (err) {
-    logger.warn(`Overpass POI query failed (${err.message}). Returning fallback curated POIs.`);
-    const simulatedPOIs = [
-      {
-        id: 201,
-        name: 'HP Auto Fuel & EV Station',
-        category: 'fuel',
-        latitude: Number(lat) + 0.003,
-        longitude: Number(lng) + 0.002,
-        tags: { amenity: 'fuel', brand: 'HP' }
-      },
-      {
-        id: 202,
-        name: 'City Multi-level Parking Hub',
-        category: 'parking',
-        latitude: Number(lat) - 0.002,
-        longitude: Number(lng) + 0.004,
-        tags: { amenity: 'parking' }
-      },
-      {
-        id: 203,
-        name: 'Apollo Emergency Medical Care',
-        category: 'hospital',
-        latitude: Number(lat) + 0.005,
-        longitude: Number(lng) - 0.003,
-        tags: { amenity: 'hospital', emergency: 'yes' }
-      }
-    ];
-    return simulatedPOIs;
+    logger.warn(`TomTom POI query failed (${err.response?.status || err.code || err.message}).`);
+    throw new BadGatewayError('TomTom nearby place search is temporarily unavailable. Please try again shortly.');
   }
 }
 
-module.exports = {
-  searchNearbyPOIs
-};
+module.exports = { searchNearbyPOIs };

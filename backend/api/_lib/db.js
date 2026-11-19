@@ -9,16 +9,58 @@ const logger = require('./logging');
 let pool = null;
 let isConnectedToMySQL = false;
 let connectionAttempted = false;
+const allowInMemoryFallback = process.env.ALLOW_IN_MEMORY_DB === 'true';
+const useInMemoryOnly =
+  allowInMemoryFallback &&
+  (process.env.NODE_ENV === 'test' || process.env.FORCE_IN_MEMORY_DB === 'true');
+
+function shouldUseMySQL() {
+  return !useInMemoryOnly;
+}
 
 // In-Memory Database Fallback Store (Used when XAMPP MySQL is temporarily offline)
 const inMemoryStore = {
-  users: [],
-  saved_places: [],
+  users: [
+    {
+      id: 1,
+      username: 'demo_user',
+      email: 'demo@terranav.app',
+      password_hash: '$2a$10$tWOXLQIAn/TKnjnvNJtstewcsT5tCbTHqvue5MLC6KggT0/..4A2m', // password123
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ],
+  saved_places: [
+    {
+      id: 1,
+      user_id: 1,
+      name: 'Central Station Hub',
+      latitude: 12.9784,
+      longitude: 77.5726,
+      address: 'Kempegowda, Bengaluru',
+      category: 'favorite',
+      collection_name: 'Favorites',
+      notes: null,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 2,
+      user_id: 1,
+      name: 'MG Road Metro Station',
+      latitude: 12.9756,
+      longitude: 77.6066,
+      address: 'MG Road, Bengaluru',
+      category: 'work',
+      collection_name: 'Work & Transit',
+      notes: null,
+      created_at: new Date().toISOString()
+    }
+  ],
   route_history: [],
   incidents: [],
   autoIncrements: {
-    users: 1,
-    saved_places: 1,
+    users: 2,
+    saved_places: 3,
     route_history: 1,
     incidents: 1
   }
@@ -37,16 +79,44 @@ function createPool() {
     waitForConnections: true,
     connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10', 10),
     queueLimit: 0,
-    connectTimeout: 3000
+    connectTimeout: 5000
   };
+
+  const useSSL = process.env.DB_SSL === 'true' ||
+    (process.env.DB_HOST && process.env.DB_HOST.includes('aivencloud.com'));
+
+  if (useSSL) {
+    config.ssl = { rejectUnauthorized: false };
+  }
 
   try {
     pool = mysql.createPool(config);
     return pool;
   } catch (err) {
-    logger.warn(`Failed to initialize MySQL pool: ${err.message}. Operating in memory fallback mode.`);
+    logger.warn(`Failed to initialize MySQL pool: ${err.message}.`);
     return null;
   }
+}
+
+let reconnectTimer = null;
+
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  reconnectTimer = setTimeout(async () => {
+    reconnectTimer = null;
+    try {
+      if (!pool) createPool();
+      if (pool) {
+        const conn = await pool.getConnection();
+        await conn.ping();
+        conn.release();
+        isConnectedToMySQL = true;
+        logger.info('MySQL reconnected successfully in background.');
+      }
+    } catch {
+      scheduleReconnect();
+    }
+  }, 10000);
 }
 
 /**
@@ -54,16 +124,34 @@ function createPool() {
  */
 async function testConnection() {
   connectionAttempted = true;
+
+  if (useInMemoryOnly) {
+    isConnectedToMySQL = false;
+    return {
+      connected: false,
+      mode: 'in-memory-test-fallback',
+      message: 'Deterministic in-memory database (ALLOW_IN_MEMORY_DB=true for tests).'
+    };
+  }
+
   if (!pool) {
     createPool();
   }
 
   if (!pool) {
     isConnectedToMySQL = false;
+    if (allowInMemoryFallback) {
+      scheduleReconnect();
+      return {
+        connected: false,
+        mode: 'in-memory-fallback',
+        message: 'MySQL pool could not be initialized. Using in-memory store.'
+      };
+    }
     return {
       connected: false,
-      mode: 'in-memory-fallback',
-      message: 'MySQL pool could not be initialized. Using in-memory store.'
+      mode: 'unavailable',
+      message: 'MySQL is unavailable and in-memory fallback is disabled.'
     };
   }
 
@@ -90,10 +178,19 @@ async function testConnection() {
     };
   } catch (err) {
     isConnectedToMySQL = false;
-    logger.warn(`MySQL connection test failed (${err.code || err.message}). Operating in in-memory fallback mode.`);
+    scheduleReconnect();
+    logger.warn(`MySQL connection test failed (${err.code || err.message}).`);
+    if (allowInMemoryFallback) {
+      logger.warn('Using in-memory database store (ALLOW_IN_MEMORY_DB=true).');
+      return {
+        connected: false,
+        mode: 'in-memory-fallback',
+        error: err.code || err.message
+      };
+    }
     return {
       connected: false,
-      mode: 'in-memory-fallback',
+      mode: 'unavailable',
       error: err.code || err.message
     };
   }
@@ -128,7 +225,7 @@ function executeFallback(sql, params = []) {
   }
 
   // SELECT ... FROM users
-  if (normalized.includes('FROM USERS')) {
+  if (normalized.startsWith('SELECT') && normalized.includes('FROM USERS')) {
     if (normalized.includes('WHERE EMAIL = ?')) {
       const email = params[0];
       const match = inMemoryStore.users.filter(u => u.email === email);
@@ -150,7 +247,7 @@ function executeFallback(sql, params = []) {
   // INSERT INTO saved_places
   if (normalized.startsWith('INSERT INTO SAVED_PLACES')) {
     const id = inMemoryStore.autoIncrements.saved_places++;
-    const [user_id, name, latitude, longitude, address, category] = params;
+    const [user_id, name, latitude, longitude, address, category, collection_name, notes] = params;
     const place = {
       id,
       user_id: parseInt(user_id, 10),
@@ -159,6 +256,8 @@ function executeFallback(sql, params = []) {
       longitude: parseFloat(longitude),
       address: address || null,
       category: category || 'favorite',
+      collection_name: collection_name || 'Favorites',
+      notes: notes || null,
       created_at: new Date().toISOString()
     };
     inMemoryStore.saved_places.push(place);
@@ -166,7 +265,7 @@ function executeFallback(sql, params = []) {
   }
 
   // SELECT ... FROM saved_places
-  if (normalized.includes('FROM SAVED_PLACES')) {
+  if (normalized.startsWith('SELECT') && normalized.includes('FROM SAVED_PLACES')) {
     if (normalized.includes('WHERE USER_ID = ? AND ID = ?')) {
       const [userId, id] = params;
       const match = inMemoryStore.saved_places.filter(p => p.user_id === parseInt(userId, 10) && p.id === parseInt(id, 10));
@@ -251,7 +350,7 @@ function executeFallback(sql, params = []) {
   }
 
   // SELECT ... FROM route_history
-  if (normalized.includes('FROM ROUTE_HISTORY')) {
+  if (normalized.startsWith('SELECT') && normalized.includes('FROM ROUTE_HISTORY')) {
     if (normalized.includes('WHERE USER_ID = ? AND ID = ?')) {
       const [userId, id] = params;
       const match = inMemoryStore.route_history.filter(h => h.user_id === parseInt(userId, 10) && h.id === parseInt(id, 10));
@@ -259,7 +358,18 @@ function executeFallback(sql, params = []) {
     }
     if (normalized.includes('WHERE USER_ID = ?')) {
       const userId = parseInt(params[0], 10);
-      const match = inMemoryStore.route_history.filter(h => h.user_id === userId);
+      let match = inMemoryStore.route_history.filter(h => h.user_id === userId);
+      if (normalized.includes('ORDER BY')) {
+        match = match.slice().sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+      if (normalized.includes('LIMIT')) {
+        const limit = parseInt(params[params.length - 1], 10);
+        if (Number.isFinite(limit) && limit >= 0) {
+          match = match.slice(0, limit);
+        }
+      }
       return [match, []];
     }
     return [inMemoryStore.route_history, []];
@@ -268,6 +378,11 @@ function executeFallback(sql, params = []) {
   // DELETE FROM route_history
   if (normalized.startsWith('DELETE FROM ROUTE_HISTORY')) {
     const [userId, id] = params;
+    if (!normalized.includes('AND ID = ?')) {
+      const before = inMemoryStore.route_history.length;
+      inMemoryStore.route_history = inMemoryStore.route_history.filter(h => h.user_id !== parseInt(userId, 10));
+      return [{ affectedRows: before - inMemoryStore.route_history.length }, []];
+    }
     const index = inMemoryStore.route_history.findIndex(h => h.user_id === parseInt(userId, 10) && h.id === parseInt(id, 10));
     if (index !== -1) {
       inMemoryStore.route_history.splice(index, 1);
@@ -297,7 +412,7 @@ function executeFallback(sql, params = []) {
   }
 
   // SELECT ... FROM incidents
-  if (normalized.includes('FROM INCIDENTS')) {
+  if (normalized.startsWith('SELECT') && normalized.includes('FROM INCIDENTS')) {
     if (normalized.includes('WHERE CHUNK_ID = ? AND STATUS = ?')) {
       const [chunkId, status] = params;
       const match = inMemoryStore.incidents.filter(i => i.chunk_id === chunkId && i.status === status);
@@ -349,7 +464,7 @@ function executeFallback(sql, params = []) {
  * Execute parameterized query with connection pooling or fallback
  */
 async function query(sql, params = []) {
-  if (isConnectedToMySQL && pool) {
+  if (shouldUseMySQL() && isConnectedToMySQL && pool) {
     try {
       return await pool.query(sql, params);
     } catch (err) {
@@ -358,15 +473,17 @@ async function query(sql, params = []) {
     }
   }
 
-  // Fallback to in-memory store
-  return executeFallback(sql, params);
+  if (allowInMemoryFallback) return executeFallback(sql, params);
+  const error = new Error('MySQL is unavailable. Start XAMPP MySQL and configure terranav_db.');
+  error.code = 'DB_UNAVAILABLE';
+  throw error;
 }
 
 /**
  * Execute prepared statement
  */
 async function execute(sql, params = []) {
-  if (isConnectedToMySQL && pool) {
+  if (shouldUseMySQL() && isConnectedToMySQL && pool) {
     try {
       return await pool.execute(sql, params);
     } catch (err) {
@@ -375,23 +492,41 @@ async function execute(sql, params = []) {
     }
   }
 
-  // Fallback to in-memory store
-  return executeFallback(sql, params);
+  if (allowInMemoryFallback) return executeFallback(sql, params);
+  const error = new Error('MySQL is unavailable. Start XAMPP MySQL and configure terranav_db.');
+  error.code = 'DB_UNAVAILABLE';
+  throw error;
 }
 
 /**
  * Get current DB status information
  */
 function getPoolStatus() {
+  let mode = 'unavailable';
+  if (isConnectedToMySQL) {
+    mode = 'mysql';
+  } else if (useInMemoryOnly) {
+    mode = 'in-memory-test-fallback';
+  } else if (allowInMemoryFallback) {
+    mode = 'in-memory-fallback';
+  }
+
   return {
     database: process.env.DB_NAME || 'terranav_db',
     host: process.env.DB_HOST || '127.0.0.1',
     port: parseInt(process.env.DB_PORT || '3306', 10),
     driver: 'mysql2/promise',
     connected: isConnectedToMySQL,
-    mode: isConnectedToMySQL ? 'mysql' : 'in-memory-fallback',
-    connectionAttempted
+    persistent: isConnectedToMySQL,
+    mode,
+    connectionAttempted,
+    fallbackEnabled: allowInMemoryFallback,
+    inMemoryOnly: useInMemoryOnly
   };
+}
+
+function isPersistenceReady() {
+  return isConnectedToMySQL;
 }
 
 // Initialize pool on module load
@@ -403,5 +538,6 @@ module.exports = {
   query,
   execute,
   getPoolStatus,
+  isPersistenceReady,
   inMemoryStore
 };

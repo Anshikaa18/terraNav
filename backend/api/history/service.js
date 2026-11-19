@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — Route History Service
+ * ChunkFlow AI — Route History Service
  * Member 3: Backend Integration & Microservices
  */
 
@@ -108,9 +108,15 @@ async function deleteRouteHistory(userId, historyId) {
   return { deleted: true, id };
 }
 
+async function clearRouteHistory(userId) {
+  const [result] = await db.execute('DELETE FROM route_history WHERE user_id = ?', [userId]);
+  return { deleted: true, count: result.affectedRows || 0 };
+}
+
 module.exports = {
   listRouteHistory,
   logRouteHistory,
   getRouteHistoryById,
-  deleteRouteHistory
+  deleteRouteHistory,
+  clearRouteHistory
 };

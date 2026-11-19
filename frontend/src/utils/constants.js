@@ -1,10 +1,10 @@
-// TerraNav is India-first: the map opens over Bengaluru and geocoding is biased
+// ChunkFlow is India-first: the map opens over Bengaluru and geocoding is biased
 // to India by default, but worldwide places stay reachable (see INDIA_COUNTRY_CODE).
 export const DEFAULT_COORDINATES = {
-  lat: 12.9716,
-  lon: 77.5946,
-  city: 'Bengaluru',
-  zoom: 12,
+  lat: 21.2400,
+  lon: 81.6350,
+  city: 'Raipur',
+  zoom: 14,
 };
 
 // Approximate bounding box of India [[southWest], [northEast]] — used to keep the
@@ -19,6 +19,7 @@ export const INDIA_BOUNDS = [
 export const INDIA_COUNTRY_CODE = 'in';
 
 export const MAJOR_INDIAN_CITIES = [
+  { name: 'Raipur', lat: 21.2400, lon: 81.6350 },
   { name: 'Bengaluru', lat: 12.9716, lon: 77.5946 },
   { name: 'Mumbai', lat: 19.0760, lon: 72.8777 },
   { name: 'Delhi', lat: 28.6139, lon: 77.2090 },
@@ -119,20 +120,17 @@ export const TILE_LAYERS = {
     maxZoom: 19,
     subdomains: 'abcd',
   },
+  tomtom: {
+    id: 'tomtom',
+    name: 'TomTom Maps',
+    description: 'TomTom Basic raster map, securely proxied by the backend',
+    // The backend owns TOMTOM_API_KEY, so it never becomes a browser-visible URL.
+    url: '/api/maps/tomtom/tiles/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.tomtom.com/">TomTom</a> &copy; OpenStreetMap contributors',
+    maxZoom: 22,
+  },
 };
 
-/**
- * Nearby discovery categories, tuned for Indian cities.
- *
- * Each entry is the single source of truth for both POI providers:
- *  - `overpass`: OSM tag filters, each becoming one `nwr[k=v]` clause in a union
- *                query (primary provider — accurate, tag-based).
- *  - `nominatim`: free-text term used only if every Overpass mirror fails.
- *  - `osmTypes`: accepted values of the OSM `type` field, used to drop
- *                mismatched results from the Nominatim fallback.
- *
- * Kept in sync with CATEGORY_MAP in api/places/nearby.js.
- */
 export const NEARBY_CATEGORIES = [
   {
     id: 'restaurants', label: 'Restaurants', icon: 'Utensils', color: 'bg-orange-500',
@@ -155,29 +153,24 @@ export const NEARBY_CATEGORIES = [
     nominatim: 'pharmacy', osmTypes: ['pharmacy', 'chemist'],
   },
   {
-    id: 'atms', label: 'ATMs & Banks', icon: 'Landmark', color: 'bg-emerald-600',
+    id: 'atms', label: 'ATMs', icon: 'Landmark', color: 'bg-emerald-600',
     overpass: [['amenity', 'atm'], ['amenity', 'bank']],
     nominatim: 'atm', osmTypes: ['atm', 'bank'],
   },
   {
-    id: 'petrol', label: 'Petrol Pump', icon: 'Fuel', color: 'bg-blue-600',
+    id: 'petrol', label: 'Petrol Pumps', icon: 'Fuel', color: 'bg-blue-600',
     overpass: [['amenity', 'fuel']],
     nominatim: 'petrol pump', osmTypes: ['fuel'],
   },
   {
-    id: 'metro', label: 'Metro', icon: 'TrainFront', color: 'bg-violet-600',
-    overpass: [['station', 'subway'], ['railway', 'subway_entrance']],
-    nominatim: 'metro station', osmTypes: ['station', 'subway_entrance'],
-  },
-  {
-    id: 'railway', label: 'Railway', icon: 'Train', color: 'bg-slate-600',
-    overpass: [['railway', 'station']],
-    nominatim: 'railway station', osmTypes: ['station', 'halt'],
-  },
-  {
-    id: 'bus', label: 'Bus Stand', icon: 'Bus', color: 'bg-cyan-600',
+    id: 'bus', label: 'Bus Stops', icon: 'Bus', color: 'bg-cyan-600',
     overpass: [['amenity', 'bus_station'], ['highway', 'bus_stop']],
-    nominatim: 'bus stand', osmTypes: ['bus_station', 'bus_stop'],
+    nominatim: 'bus stop', osmTypes: ['bus_station', 'bus_stop'],
+  },
+  {
+    id: 'police', label: 'Police Stations', icon: 'Shield', color: 'bg-blue-800',
+    overpass: [['amenity', 'police']],
+    nominatim: 'police station', osmTypes: ['police'],
   },
   {
     id: 'hotels', label: 'Hotels', icon: 'Bed', color: 'bg-indigo-500',
@@ -204,20 +197,16 @@ export const NEARBY_CATEGORIES = [
     overpass: [['tourism', 'attraction'], ['tourism', 'museum']],
     nominatim: 'tourist attraction', osmTypes: ['attraction', 'museum'],
   },
-  {
-    id: 'police', label: 'Police', icon: 'Shield', color: 'bg-blue-800',
-    overpass: [['amenity', 'police']],
-    nominatim: 'police station', osmTypes: ['police'],
-  },
 ];
 
 // `valhallaCosting` maps each UI mode to a Valhalla costing model. These are the
 // real per-mode profiles — the previous OSRM demo server silently served the car
 // profile for every mode, so walking and cycling returned driving times.
 export const TRANSPORT_MODES = [
-  { id: 'driving', label: 'Driving', icon: 'Car', valhallaCosting: 'auto' },
-  { id: 'walking', label: 'Walking', icon: 'Footprints', valhallaCosting: 'pedestrian' },
-  { id: 'cycling', label: 'Cycling', icon: 'Bike', valhallaCosting: 'bicycle' },
+  { id: 'driving', label: 'Car', icon: 'Car', valhallaCosting: 'auto' },
+  { id: 'motorcycle', label: 'Bike', icon: 'Motorcycle', valhallaCosting: 'motorcycle' },
+  { id: 'bicycle', label: 'Bicycle', icon: 'Bicycle', valhallaCosting: 'bicycle' },
+  { id: 'walking', label: 'Walk', icon: 'Footprints', valhallaCosting: 'pedestrian' },
 ];
 
 export const DEFAULT_LISTS = [

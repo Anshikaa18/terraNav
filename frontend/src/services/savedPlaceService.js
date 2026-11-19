@@ -11,7 +11,10 @@ export const savedPlaceService = {
         lat: Number(p.latitude),
         lon: Number(p.longitude),
         address: p.address,
+        display_name: p.address,
         category: p.category || 'favorite',
+        collectionName: p.collection_name || 'Favorites',
+        notes: p.notes || '',
         createdAt: p.created_at
       }));
     } catch (err) {
@@ -25,8 +28,10 @@ export const savedPlaceService = {
       name: placeData.name || 'Saved Place',
       latitude: placeData.lat !== undefined ? Number(placeData.lat) : Number(placeData.latitude),
       longitude: placeData.lon !== undefined ? Number(placeData.lon) : (placeData.lng !== undefined ? Number(placeData.lng) : Number(placeData.longitude)),
-      address: placeData.address || null,
-      category: placeData.category || 'favorite'
+      address: placeData.address || placeData.display_name || null,
+      category: placeData.category || 'place',
+      collectionName: placeData.collectionName || 'Favorites',
+      notes: placeData.notes || null,
     };
     const res = await api.post('/api/saved', payload);
     const data = res.data || res;
@@ -36,7 +41,9 @@ export const savedPlaceService = {
       lat: Number(data.latitude || data.lat),
       lon: Number(data.longitude || data.lon),
       address: data.address,
-      category: data.category
+      category: data.category,
+      collectionName: data.collectionName,
+      notes: data.notes
     };
   },
 
@@ -46,14 +53,17 @@ export const savedPlaceService = {
   },
 
   async getSavedLists() {
+    const places = await this.getSavedPlaces();
+    const savedNames = new Set(places.map((place) => place.collectionName).filter(Boolean));
     return [
       { id: 'favorites', name: 'Favorites', icon: 'heart', description: 'Quick access places' },
-      { id: 'work', name: 'Work & Transit', icon: 'briefcase', description: 'Daily commutes' }
+      { id: 'work', name: 'Work & Transit', icon: 'briefcase', description: 'Daily commutes' },
+      ...[...savedNames].filter((name) => !['Favorites', 'Work & Transit'].includes(name)).map((name) => ({ id: name, name, icon: 'bookmark' }))
     ];
   },
 
   async createSavedList(name, icon = 'bookmark', description = '') {
-    return { id: 'list_' + Date.now(), name, icon, description };
+    return { id: name.trim(), name: name.trim(), icon, description };
   },
 
   async deleteSavedList(id) {

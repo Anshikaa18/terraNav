@@ -17,80 +17,81 @@ export default function SettingsPage() {
   const handleSaveSettings = () => {
     localStorage.setItem('terranav_units', units);
     localStorage.setItem('terranav_preferred_mode', preferredMode);
+    window.dispatchEvent(new Event('terranav_settings_changed'));
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
 
   return (
-    <div className="h-[calc(100vh-62px)] flex flex-col max-w-3xl mx-auto p-4 lg:p-8 overflow-y-auto select-none font-mono">
+    <div className="h-[calc(100vh-64px)] flex flex-col max-w-3xl mx-auto p-4 lg:p-8 overflow-y-auto select-none bg-[var(--background)] text-[var(--text)]">
       <div className="mb-6">
-        <span className="text-[9px] text-[#63e7ee] tracking-[1.5px] uppercase">CONFIGURATION CONSOLE</span>
-        <h1 className="font-condensed text-3xl font-bold tracking-wide text-[#edf3f1] flex items-center space-x-2">
-          <Settings className="w-5 h-5 text-[#63e7ee]" />
-          <span>APPLICATION SETTINGS</span>
+        <span className="text-[10px] text-[var(--primary)] font-bold tracking-wider uppercase">Preferences</span>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text)] flex items-center space-x-2.5 mt-0.5">
+          <Settings className="w-6 h-6 text-[var(--primary)]" />
+          <span>Application Settings</span>
         </h1>
-        <p className="text-xs text-[#8c9a9c] mt-0.5">
-          Customize your map telemetry, routing preferences, and visual layer parameters
+        <p className="text-xs text-[var(--text-secondary)] mt-1">
+          Customize your map appearance, navigation defaults, and display parameters
         </p>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 pb-12">
         {/* User Account Card */}
-        <div className="p-5 rounded bg-[#11171b] border border-[#29353a] shadow-sm">
-          <h2 className="text-xs font-bold text-[#63e7ee] uppercase tracking-wider mb-4 flex items-center space-x-2">
-            <User className="w-3.5 h-3.5" />
-            <span>AUTHENTICATION PROFILE</span>
+        <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-sm)]">
+          <h2 className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-4 flex items-center space-x-2">
+            <User className="w-4 h-4" />
+            <span>Account Profile</span>
           </h2>
 
           {isAuthenticated ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded bg-[#172125] border border-[#63e7ee] text-[#63e7ee] flex items-center justify-center font-bold text-base shadow-[0_0_8px_rgba(99,231,238,0.25)]">
+                <div className="w-11 h-11 rounded-2xl bg-[var(--primary-soft)] border border-[var(--outline)]/40 text-[var(--primary)] flex items-center justify-center font-bold text-base shadow-sm">
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-[#edf3f1]">
+                  <h3 className="text-sm font-bold text-[var(--text)]">
                     {user?.name}
                   </h3>
-                  <p className="text-[10px] text-[#8c9a9c]">{user?.email}</p>
+                  <p className="text-xs text-[var(--text-secondary)]">{user?.email}</p>
                 </div>
               </div>
 
               <button
                 onClick={logout}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wider text-[#ff5d61] bg-[#172125] border border-[#ff5d61]/40 hover:bg-[#ff5d61]/20 transition-colors"
+                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-[var(--red)] bg-[var(--surface-subtle)] border border-[var(--border)] hover:bg-[var(--red)]/10 transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>SIGN OUT</span>
+                <span>Sign Out</span>
               </button>
             </div>
           ) : (
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-[#8c9a9c]">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Browsing as guest. Sign in to synchronize saved waypoints and routing telemetry.
               </p>
               <a
                 href="/login"
-                className="px-3.5 py-1.5 rounded bg-[#63e7ee] text-[#071014] text-xs font-bold uppercase tracking-wider hover:bg-[#7ef1f7] transition-all flex-shrink-0 ml-4 shadow-[0_0_10px_rgba(99,231,238,0.2)]"
+                className="px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-xs font-bold uppercase tracking-wider hover:bg-[var(--primary-strong)] transition-all flex-shrink-0 ml-4 shadow-sm"
               >
-                SIGN IN
+                Sign In
               </a>
             </div>
           )}
         </div>
 
         {/* Display & Theme */}
-        <div className="p-5 rounded bg-[#11171b] border border-[#29353a] shadow-sm">
-          <h2 className="text-xs font-bold text-[#63e7ee] uppercase tracking-wider mb-4 flex items-center space-x-2">
-            <Sun className="w-3.5 h-3.5" />
-            <span>THEME & DISPLAY MODE</span>
+        <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-sm)]">
+          <h2 className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-4 flex items-center space-x-2">
+            <Sun className="w-4 h-4" />
+            <span>Theme & Appearance</span>
           </h2>
 
           <div className="grid grid-cols-3 gap-3">
             {[
-              { id: 'light', label: 'LIGHT', icon: Sun },
-              { id: 'dark', label: 'DARK COMMAND', icon: Moon },
-              { id: 'system', label: 'SYSTEM', icon: Monitor },
+              { id: 'light', label: 'Light', icon: Sun },
+              { id: 'dark', label: 'Dark Mode', icon: Moon },
+              { id: 'system', label: 'System', icon: Monitor },
             ].map((th) => {
               const Icon = th.icon;
               const isSelected = theme === th.id;
@@ -106,13 +107,13 @@ export default function SettingsPage() {
                       setTheme(th.id);
                     }
                   }}
-                  className={`flex flex-col items-center justify-center p-3 rounded border text-xs tracking-wider uppercase transition-all ${
+                  className={`flex flex-col items-center justify-center p-3.5 rounded-xl border text-xs font-semibold tracking-wide transition-all ${
                     isSelected
-                      ? 'border-[#63e7ee] bg-[#63e7ee]/10 text-[#63e7ee] shadow-[0_0_8px_rgba(99,231,238,0.2)] font-bold'
-                      : 'border-[#38474b] bg-[#172125] text-[#8c9a9c] hover:text-[#edf3f1] hover:border-[#63e7ee]'
+                      ? 'border-[var(--outline)] bg-[var(--primary-soft)] text-[var(--primary)] shadow-sm font-bold'
+                      : 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:text-[var(--text)] hover:border-[var(--outline)]'
                   }`}
                 >
-                  <Icon className="w-4 h-4 mb-1.5" />
+                  <Icon className="w-5 h-5 mb-1.5" />
                   <span>{th.label}</span>
                 </button>
               );
@@ -121,10 +122,10 @@ export default function SettingsPage() {
         </div>
 
         {/* Default Map Layer */}
-        <div className="p-5 rounded bg-[#11171b] border border-[#29353a] shadow-sm">
-          <h2 className="text-xs font-bold text-[#63e7ee] uppercase tracking-wider mb-4 flex items-center space-x-2">
-            <Map className="w-3.5 h-3.5" />
-            <span>DEFAULT BASEMAP LAYER</span>
+        <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-sm)]">
+          <h2 className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-4 flex items-center space-x-2">
+            <Map className="w-4 h-4" />
+            <span>Default Basemap Layer</span>
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -134,15 +135,17 @@ export default function SettingsPage() {
               return (
                 <button
                   key={layer.id}
+                  disabled={layer.available === false}
                   onClick={() => setActiveLayer(layer.id)}
-                  className={`flex items-center justify-between p-3 rounded border text-xs tracking-wider uppercase transition-all ${
+                  title={layer.available === false ? layer.description : undefined}
+                  className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-semibold tracking-wide transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                     isSelected
-                      ? 'border-[#63e7ee] bg-[#63e7ee]/10 text-[#63e7ee] font-bold shadow-[0_0_8px_rgba(99,231,238,0.2)]'
-                      : 'border-[#38474b] bg-[#172125] text-[#8c9a9c] hover:border-[#63e7ee] hover:text-[#edf3f1]'
+                      ? 'border-[var(--outline)] bg-[var(--primary-soft)] text-[var(--primary)] font-bold shadow-sm'
+                      : 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:border-[var(--outline)] hover:text-[var(--text)]'
                   }`}
                 >
-                  <span>{layer.name}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-[#63e7ee]" />}
+                  <span>{layer.name}{layer.available === false ? ' · Key required' : ''}</span>
+                  {isSelected && <Check className="w-4 h-4 text-[var(--primary)]" />}
                 </button>
               );
             })}
@@ -150,29 +153,33 @@ export default function SettingsPage() {
         </div>
 
         {/* Navigation & Units */}
-        <div className="p-5 rounded bg-[#11171b] border border-[#29353a] shadow-sm">
-          <h2 className="text-xs font-bold text-[#63e7ee] uppercase tracking-wider mb-4 flex items-center space-x-2">
-            <Compass className="w-3.5 h-3.5" />
-            <span>NAVIGATION & DISTANCE UNITS</span>
+        <div className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-sm)]">
+          <h2 className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-4 flex items-center space-x-2">
+            <Compass className="w-4 h-4" />
+            <span>Navigation Defaults</span>
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-[10px] uppercase tracking-wider text-[#8c9a9c] mb-1.5">
-                DISTANCE METRIC
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-[var(--text-secondary)] mb-1.5">
+                Distance Metric
               </label>
               <div className="flex space-x-2.5">
                 {[
-                  { id: 'km', label: 'KILOMETERS (KM / M)' },
-                  { id: 'miles', label: 'MILES (MI / FT)' },
+                  { id: 'km', label: 'Kilometers (km)' },
+                  { id: 'm', label: 'Meters (m)' },
                 ].map((u) => (
                   <button
                     key={u.id}
-                    onClick={() => setUnits(u.id)}
-                    className={`flex-1 py-2 px-3 rounded text-xs tracking-wider uppercase border transition-all ${
+                    onClick={() => {
+                      setUnits(u.id);
+                      localStorage.setItem('terranav_units', u.id);
+                      window.dispatchEvent(new Event('terranav_settings_changed'));
+                    }}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold tracking-wide border transition-all ${
                       units === u.id
-                        ? 'border-[#63e7ee] bg-[#63e7ee]/10 text-[#63e7ee] font-bold shadow-[0_0_8px_rgba(99,231,238,0.2)]'
-                        : 'border-[#38474b] bg-[#172125] text-[#8c9a9c] hover:border-[#63e7ee] hover:text-[#edf3f1]'
+                        ? 'border-[var(--outline)] bg-[var(--primary-soft)] text-[var(--primary)] font-bold shadow-sm'
+                        : 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:border-[var(--outline)] hover:text-[var(--text)]'
                     }`}
                   >
                     {u.label}
@@ -182,18 +189,18 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase tracking-wider text-[#8c9a9c] mb-1.5">
-                DEFAULT TRAVEL MODE
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-[var(--text-secondary)] mb-1.5">
+                Preferred Travel Mode
               </label>
-              <div className="flex space-x-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {TRANSPORT_MODES.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => setPreferredMode(m.id)}
-                    className={`flex-1 py-2 px-3 rounded text-xs tracking-wider uppercase border transition-all ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-semibold tracking-wide border transition-all ${
                       preferredMode === m.id
-                        ? 'border-[#63e7ee] bg-[#63e7ee]/10 text-[#63e7ee] font-bold shadow-[0_0_8px_rgba(99,231,238,0.2)]'
-                        : 'border-[#38474b] bg-[#172125] text-[#8c9a9c] hover:border-[#63e7ee] hover:text-[#edf3f1]'
+                        ? 'border-[var(--outline)] bg-[var(--primary-soft)] text-[var(--primary)] font-bold shadow-sm'
+                        : 'border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:border-[var(--outline)] hover:text-[var(--text)]'
                     }`}
                   >
                     {m.label}
@@ -205,26 +212,23 @@ export default function SettingsPage() {
             <div className="pt-2">
               <button
                 onClick={handleSaveSettings}
-                className="px-5 py-2.5 rounded bg-[#63e7ee] hover:bg-[#7ef1f7] text-[#071014] text-xs font-bold uppercase tracking-wider border border-[#63e7ee] shadow-[0_0_10px_rgba(99,231,238,0.25)] transition-all flex items-center space-x-2"
+                className="px-5 py-2.5 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-strong)] text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center space-x-2 shadow-sm"
               >
-                {savedSuccess ? <Check className="w-3.5 h-3.5" /> : null}
-                <span>{savedSuccess ? 'PREFERENCES SAVED!' : 'SAVE PREFERENCES'}</span>
+                {savedSuccess ? <Check className="w-4 h-4" /> : null}
+                <span>{savedSuccess ? 'Preferences Saved!' : 'Save Preferences'}</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* System & Architecture Info */}
-        <div className="p-4 rounded bg-[#0a1013] border border-[#233035] text-[11px] text-[#8c9a9c] space-y-1.5">
-          <div className="flex items-center space-x-2 font-semibold text-[#61dfab]">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>TERRANAV / CHUNKFLOW ARCHITECTURE</span>
+        <div className="p-4 rounded-2xl bg-[var(--surface-subtle)] border border-[var(--border)] text-xs text-[var(--text-secondary)] space-y-1.5 shadow-sm">
+          <div className="flex items-center space-x-2 font-bold text-[var(--primary)]">
+            <ShieldCheck className="w-4 h-4" />
+            <span>ChunkFlow Dynamic Routing Lab</span>
           </div>
-          <p>
-            Vercel Serverless Functions API • OpenStreetMap & CartoDB Dark Matter Tiles • Valhalla Routing Engine • India-Biased Geocoding.
-          </p>
-          <p className="text-[10px] text-[#586769]">
-            ChunkFlow Cyber Command Palette • Version 1.0.0
+          <p className="leading-relaxed">
+            ChunkFlow ML Neural Predictions • CartoDB Positron & Dark Matter Tiles • TomTom Places & Traffic • Real-time Traffic Corridors.
           </p>
         </div>
       </div>

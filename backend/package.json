@@ -1,12 +1,19 @@
 {
   "name": "terranav-backend",
   "version": "1.0.0",
-  "description": "TerraNav AI Member 3: Backend Integration, Microservices & Data Layer",
+  "description": "ChunkFlow AI Member 3: Backend Integration, Microservices & Data Layer",
   "main": "api/server.js",
   "scripts": {
     "start": "node api/server.js",
     "dev": "node api/server.js",
-    "test": "node tests/test_suite.js"
+    "test": "node tests/test_suite.js",
+    "test:traffic": "node tests/traffic_matching_routing.test.js",
+    "test:providers": "node tests/provider_fallbacks.test.js",
+    "test:tomtom": "node tests/tomtom_traffic.test.js",
+    "test:tomtom-maps": "node tests/tomtom_maps.test.js",
+    "test:tomtom-search": "node tests/tomtom_search.test.js",
+    "test:tomtom-ml": "node tests/tomtom_ml_context.test.js",
+    "test:all": "node tests/auth_config.test.js && node tests/incident_auth.test.js && node tests/cors_ratelimit.test.js && node tests/history_clear.test.js && node tests/ml_schema.test.js && node tests/tomtom_traffic.test.js && node tests/tomtom_maps.test.js && node tests/tomtom_routing.test.js && node tests/traffic_update_auth.test.js && node tests/test_suite.js && node tests/traffic_matching_routing.test.js && node tests/provider_fallbacks.test.js && node tests/tomtom_search.test.js && node tests/tomtom_ml_context.test.js"
   },
   "keywords": [
     "terranav",
@@ -17,7 +24,7 @@
     "jwt",
     "dynamic-routing"
   ],
-  "author": "TerraNav Team (Member 3)",
+  "author": "ChunkFlow Team (Member 3)",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.7.9",
@@ -26,7 +33,6 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "leaflet": "^1.9.4",
     "mysql2": "^3.12.0"
   }
 }

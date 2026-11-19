@@ -1,11 +1,11 @@
 /**
- * TerraNav AI — Request Validation Utilities
+ * ChunkFlow AI — Request Validation Utilities
  * Member 3: Backend Integration & Microservices
  */
 
 const { BadRequestError } = require('./errors');
 
-const VALID_TRANSPORT_MODES = ['car', 'motorcycle', 'bike', 'pedestrian'];
+const VALID_TRANSPORT_MODES = ['car', 'driving', 'motorcycle', 'bike', 'bicycle', 'cycling', 'pedestrian', 'walking'];
 const VALID_INCIDENT_TYPES = ['accident', 'roadblock', 'construction', 'flooding', 'heavy_traffic', 'other'];
 
 /**
@@ -60,28 +60,31 @@ function validateDynamicDirectionsRequest(body) {
   }
 
   // Validate Mode
-  const selectedMode = mode ? String(mode).toLowerCase() : 'car';
-  if (!VALID_TRANSPORT_MODES.includes(selectedMode)) {
+  const rawMode = mode ? String(mode).toLowerCase() : 'car';
+  if (!VALID_TRANSPORT_MODES.includes(rawMode)) {
     throw new BadRequestError(`Invalid transport mode: '${mode}'. Supported modes are: ${VALID_TRANSPORT_MODES.join(', ')}`);
   }
 
-  // Validate Simulated Incident if provided
-  if (simulatedIncident) {
-    if (typeof simulatedIncident !== 'object') {
-      throw new BadRequestError('simulatedIncident must be an object');
-    }
-    if (!simulatedIncident.chunkId && !simulatedIncident.location) {
-      throw new BadRequestError('simulatedIncident must specify chunkId (e.g. "CHUNK_104") or location coordinates');
-    }
-    if (simulatedIncident.type && !VALID_INCIDENT_TYPES.includes(String(simulatedIncident.type).toLowerCase())) {
-      throw new BadRequestError(`Invalid incident type: '${simulatedIncident.type}'. Supported types: ${VALID_INCIDENT_TYPES.join(', ')}`);
-    }
+  // Canonical mode normalization:
+  // - 'motorcycle' / 'bike' -> 'motorcycle' (motorized two-wheeler)
+  // - 'bicycle' / 'cycling' -> 'bicycle' (pedal cycle)
+  // - 'pedestrian' / 'walking' -> 'pedestrian' (foot walk)
+  // - 'car' / 'driving' -> 'car'
+  let normalizedMode = 'car';
+  if (rawMode === 'bicycle' || rawMode === 'cycling') {
+    normalizedMode = 'bicycle';
+  } else if (rawMode === 'motorcycle' || rawMode === 'bike') {
+    normalizedMode = 'motorcycle';
+  } else if (rawMode === 'pedestrian' || rawMode === 'walking') {
+    normalizedMode = 'pedestrian';
+  } else {
+    normalizedMode = 'car';
   }
 
   return {
     origin: { lat: Number(origin.lat), lng: Number(origin.lng) },
     destination: { lat: Number(destination.lat), lng: Number(destination.lng) },
-    mode: selectedMode === 'bike' ? 'motorcycle' : selectedMode, // normalize bike -> motorcycle
+    mode: normalizedMode,
     simulatedIncident: simulatedIncident ? {
       chunkId: simulatedIncident.chunkId ? String(simulatedIncident.chunkId).trim() : undefined,
       type: simulatedIncident.type ? String(simulatedIncident.type).toLowerCase() : 'accident',

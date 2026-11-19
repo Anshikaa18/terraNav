@@ -1,263 +1,336 @@
-/**
- * TerraNav AI — Dynamic Directions Integration Service
- * Member 3: Backend Integration & Microservices
- */
-
-const { getOsrmRoute } = require('../_lib/navigation');
+/** Dynamic directions: provider route ETAs -> live traffic speed adjustments where supported. */
+const { getOsrmRoutes } = require('../_lib/navigation');
 const mlAdapter = require('./mlAdapter');
 const routingAdapter = require('./routingAdapter');
+const trafficAdapter = require('../traffic/adapter');
 const incidentService = require('../incidents/service');
 const historyService = require('../history/service');
 const logger = require('../_lib/logging');
+const { ServiceUnavailableError, BadRequestError } = require('../_lib/errors');
 
-/**
- * Calculate Great-Circle Distance between two coordinates in meters (Haversine)
- */
 function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // Earth radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const r = 6371e3;
+  const toRad = value => value * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
 
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+function segmentId(points) {
+  const first = points[0];
+  const last = points[points.length - 1];
+  const value = `${first[0].toFixed(5)},${first[1].toFixed(5)}:${last[0].toFixed(5)},${last[1].toFixed(5)}`;
+  let hash = 5381;
+  for (let i = 0; i < value.length; i += 1) hash = ((hash * 33) ^ value.charCodeAt(i)) >>> 0;
+  return `seg_${hash.toString(36)}`;
+}
 
-  return Math.round(R * c);
+function routePoints(geometry) {
+  const raw = geometry?.coordinates;
+  if (!Array.isArray(raw) || raw.length < 2) return [];
+  return raw.map(([lng, lat]) => [Number(lat), Number(lng)])
+    .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+}
+
+function stepPoints(step) {
+  return routePoints(step?.geometry);
+}
+
+function validDuration(value) {
+  const duration = Number(value);
+  return Number.isFinite(duration) && duration >= 0 ? duration : null;
+}
+
+function validDistance(value) {
+  const distance = Number(value);
+  return Number.isFinite(distance) && distance > 0 ? distance : null;
 }
 
 /**
- * Build 200m-500m chunks from real OSRM road network geometry
+ * Preserve router geometry and split on provider navigation maneuvers.  The old
+ * implementation cut every route into arbitrary 350 m chunks, then assigned
+ * step names by array index.  That could color the wrong road and did not
+ * represent the provider's actual road sections.
  */
-function createChunksFromOsrmRoute(osrmResult) {
-  if (!osrmResult || !osrmResult.geometry || !Array.isArray(osrmResult.geometry.coordinates) || osrmResult.geometry.coordinates.length < 2) {
-    return null;
-  }
-
-  // OSRM GeoJSON is [longitude, latitude] -> convert to Leaflet [lat, lng]
-  const rawPoints = osrmResult.geometry.coordinates.map(pt => [
-    parseFloat(pt[1].toFixed(6)),
-    parseFloat(pt[0].toFixed(6))
-  ]);
-
-  const totalDist = osrmResult.distanceMeters || 1000;
-  const targetChunkLen = 350; // target 200m - 500m
-  const numChunks = Math.max(3, Math.min(25, Math.ceil(totalDist / targetChunkLen)));
-
-  // Calculate cumulative distances along the true road polyline
-  const cumDists = [0];
-  for (let i = 1; i < rawPoints.length; i++) {
-    const d = calculateDistanceMeters(
-      rawPoints[i - 1][0], rawPoints[i - 1][1],
-      rawPoints[i][0], rawPoints[i][1]
+function createSegmentsFromRoute(route) {
+  const points = routePoints(route.geometry);
+  if (points.length < 2) throw new Error('Router returned no usable road geometry');
+  const steps = (route.legs || []).flatMap(leg => Array.isArray(leg.steps) ? leg.steps : []);
+  const segments = steps.map((step, index) => {
+    const coordinates = stepPoints(step);
+    if (coordinates.length < 2) return null;
+    const derivedLength = coordinates.slice(1).reduce(
+      (total, point, pointIndex) => total + calculateDistanceMeters(coordinates[pointIndex][0], coordinates[pointIndex][1], point[0], point[1]),
+      0
     );
-    cumDists.push(cumDists[i - 1] + d);
-  }
-  const measuredTotal = cumDists[cumDists.length - 1] || totalDist;
+    const sequence = index + 1;
+    const id = segmentId(coordinates);
+    return {
+      segmentId: id,
+      chunkId: id, // compatibility alias, not a provider ID
+      legacyChunkId: `CHUNK_${100 + sequence}`,
+      sequence,
+      segmentKind: 'maneuver',
+      roadName: step.name || 'Unnamed road',
+      roadType: step.ref || null,
+      maneuver: step.maneuver || null,
+      lengthMeters: Math.round(validDistance(step.distance) || derivedLength),
+      providerDurationSeconds: validDuration(step.duration),
+      freeFlowSpeedKmh: null,
+      hasSignal: false,
+      providerTrafficIncluded: route.provider === 'TOMTOM',
+      coordinates
+    };
+  }).filter(Boolean);
 
-  // Extract road step names from OSRM legs if available
-  const stepRoads = [];
-  if (osrmResult.legs && osrmResult.legs[0] && Array.isArray(osrmResult.legs[0].steps)) {
-    osrmResult.legs[0].steps.forEach(s => {
-      if (s.name && s.name.trim().length > 0 && !stepRoads.includes(s.name.trim())) {
-        stepRoads.push(s.name.trim());
-      }
+  // A router may omit per-step geometry. Keep its actual geometry as a single
+  // provider leg instead of fabricating fixed-length road chunks.
+  if (!segments.length) {
+    const id = segmentId(points);
+    segments.push({
+      segmentId: id,
+      chunkId: id,
+      legacyChunkId: 'CHUNK_101',
+      sequence: 1,
+      segmentKind: 'provider-leg',
+      roadName: 'Provider route leg',
+      roadType: null,
+      lengthMeters: Math.round(validDistance(route.distanceMeters) || points.slice(1).reduce(
+        (total, point, index) => total + calculateDistanceMeters(points[index][0], points[index][1], point[0], point[1]), 0
+      )),
+      providerDurationSeconds: validDuration(route.durationSeconds),
+      freeFlowSpeedKmh: null,
+      hasSignal: false,
+      providerTrafficIncluded: route.provider === 'TOMTOM',
+      coordinates: points
     });
   }
 
-  const chunks = [];
-  const chunkDistTarget = measuredTotal / numChunks;
-
-  let currentVertexIdx = 0;
-  for (let c = 1; c <= numChunks; c++) {
-    const chunkTargetDist = c * chunkDistTarget;
-    const startIdx = currentVertexIdx;
-    const chunkCoords = [rawPoints[startIdx]];
-
-    while (currentVertexIdx < rawPoints.length - 1 && (cumDists[currentVertexIdx + 1] <= chunkTargetDist || c === numChunks)) {
-      currentVertexIdx++;
-      chunkCoords.push(rawPoints[currentVertexIdx]);
+  const providerDurationSeconds = Number(route.durationSeconds);
+  if (!Number.isFinite(providerDurationSeconds) || providerDurationSeconds < 0 || segments.length === 0) {
+    throw new Error('Routing provider returned a route without a valid duration.');
+  }
+  const totalSegmentMeters = segments.reduce((sum, segment) => sum + segment.lengthMeters, 0);
+  let allocatedSeconds = 0;
+  segments.forEach((segment, index) => {
+    if (segment.providerDurationSeconds !== null) {
+      allocatedSeconds += segment.providerDurationSeconds;
+      return;
     }
-
-    // Ensure at least 2 points in chunk
-    if (chunkCoords.length < 2 && currentVertexIdx < rawPoints.length - 1) {
-      currentVertexIdx++;
-      chunkCoords.push(rawPoints[currentVertexIdx]);
-    }
-
-    const chunkLen = cumDists[currentVertexIdx] - cumDists[startIdx];
-    const roadName = stepRoads[c - 1] || stepRoads[0] || (c % 2 === 0 ? 'Main Corridor' : 'City Express Avenue');
-    const chunkId = `CHUNK_${100 + c}`;
-
-    chunks.push({
-      chunkId,
-      roadName,
-      roadType: c % 3 === 0 ? 'highway' : 'primary',
-      lengthMeters: Math.max(150, Math.round(chunkLen || chunkDistTarget)),
-      freeFlowSpeedKmh: c % 3 === 0 ? 60 : 45,
-      hasSignal: c % 2 === 0,
-      coordinates: chunkCoords
-    });
-  }
-
-  return chunks.length > 0 ? chunks : null;
-}
-
-/**
- * Generate interpolated road corridor chunks (200m - 500m each) between origin and destination
- */
-function generateCorridorChunks(origin, destination, detourActive = false) {
-  const totalDirectDist = calculateDistanceMeters(origin.lat, origin.lng, destination.lat, destination.lng);
-  const targetChunkLen = 350; // target ~350m per chunk
-  const numChunks = Math.max(3, Math.min(25, Math.ceil(totalDirectDist / targetChunkLen)));
-
-  const roadNames = [
-    'Outer Ring Road',
-    'Hosur Main Road',
-    '100 Feet Road Corridor',
-    'Residency Road Expressway',
-    'Bannerghatta Highway',
-    'HAL Airport Road',
-    'Sarjapur Central Avenue'
-  ];
-
-  const chunks = [];
-  let prevLat = origin.lat;
-  let prevLng = origin.lng;
-
-  // If detour is active, introduce a geographic waypoint deviation to avoid incident chunk
-  const detourLatOffset = detourActive ? 0.0065 : 0.0;
-  const detourLngOffset = detourActive ? -0.0055 : 0.0;
-
-  for (let i = 1; i <= numChunks; i++) {
-    const fraction = i / numChunks;
-    // Detour bell curve peak at middle chunks
-    const detourWeight = detourActive ? Math.sin(fraction * Math.PI) : 0;
-
-    const currentLat = origin.lat + (destination.lat - origin.lat) * fraction + (detourLatOffset * detourWeight);
-    const currentLng = origin.lng + (destination.lng - origin.lng) * fraction + (detourLngOffset * detourWeight);
-
-    const chunkDist = calculateDistanceMeters(prevLat, prevLng, currentLat, currentLng);
-    const roadIndex = (i - 1) % roadNames.length;
-    const roadName = detourActive && detourWeight > 0.5 
-      ? `Detour via ${roadNames[(roadIndex + 2) % roadNames.length]}`
-      : roadNames[roadIndex];
-
-    const chunkId = `CHUNK_${100 + i}`;
-
-    chunks.push({
-      chunkId,
-      roadName,
-      roadType: i % 3 === 0 ? 'highway' : 'primary',
-      lengthMeters: Math.max(200, Math.min(500, chunkDist)),
-      freeFlowSpeedKmh: i % 3 === 0 ? 65 : 45,
-      hasSignal: i % 2 === 0,
-      coordinates: [
-        [parseFloat(prevLat.toFixed(6)), parseFloat(prevLng.toFixed(6))],
-        [parseFloat(currentLat.toFixed(6)), parseFloat(currentLng.toFixed(6))]
-      ]
-    });
-
-    prevLat = currentLat;
-    prevLng = currentLng;
-  }
-
-  return chunks;
-}
-
-/**
- * Orchestrate Dynamic Directions Request
- */
-async function getDynamicDirections({ origin, destination, mode = 'car', simulatedIncident = null, userId = null }) {
-  logger.info(`Processing dynamic directions request: mode=${mode}, user=${userId || 'anonymous'}`);
-
-  // Check if simulated incident specifies a roadblock requiring reroute detour
-  const isRoadblock = simulatedIncident && (simulatedIncident.type === 'roadblock' || simulatedIncident.severity === 'critical');
-
-  let corridorChunks = null;
-
-  // Step 1: Try real OSRM road network geometry when no detour is active
-  if (!isRoadblock) {
-    try {
-      const osrmResult = await getOsrmRoute(origin, destination, mode);
-      if (osrmResult && osrmResult.geometry && osrmResult.geometry.coordinates) {
-        corridorChunks = createChunksFromOsrmRoute(osrmResult);
-      }
-    } catch (osrmErr) {
-      logger.warn(`OSRM geometry retrieval failed: ${osrmErr.message}. Falling back to corridor interpolation.`);
-    }
-  }
-
-  // Fallback to geometric corridor if OSRM is offline or roadblock detour is active
-  if (!corridorChunks || corridorChunks.length === 0) {
-    corridorChunks = generateCorridorChunks(origin, destination, isRoadblock);
-  }
-
-  // Step 2: Apply ML prediction to all chunks (Member 1 integration)
-  corridorChunks = mlAdapter.predictBatch(corridorChunks);
-
-  // Step 3: Check database for active reported incidents matching any chunk
-  let activeIncident = simulatedIncident;
-  if (!activeIncident) {
-    for (const chunk of corridorChunks) {
-      const dbIncident = await incidentService.getActiveIncidentForChunk(chunk.chunkId);
-      if (dbIncident) {
-        activeIncident = {
-          chunkId: dbIncident.chunk_id,
-          type: dbIncident.incident_type,
-          severity: dbIncident.severity
-        };
-        break;
-      }
-    }
-  }
-
-  // If incident hits a specific chunk, adjust ML traffic prediction on that chunk to reflect the slowdown
-  if (activeIncident && activeIncident.chunkId) {
-    const targetChunk = corridorChunks.find(c => c.chunkId === activeIncident.chunkId);
-    if (targetChunk) {
-      targetChunk.congestionLevel = 'severe';
-      targetChunk.color = mlAdapter.CONGESTION_LEVELS.SEVERE.color;
-      targetChunk.predictedSpeedKmh = Math.max(4, Math.round(targetChunk.predictedSpeedKmh * 0.25));
-    }
-  }
-
-  // Step 4: Solve dynamic route with dynamic cost optimization (Member 2 integration)
-  const routeResult = routingAdapter.solveDynamicRoute({
-    chunks: corridorChunks,
-    mode,
-    incident: activeIncident
+    const remainingDuration = Math.max(0, providerDurationSeconds - allocatedSeconds);
+    const remainingDistance = segments.slice(index).reduce((sum, current) => sum + current.lengthMeters, 0);
+    const durationSeconds = index === segments.length - 1 || remainingDistance <= 0
+      ? remainingDuration
+      : remainingDuration * (segment.lengthMeters / remainingDistance);
+    segment.providerDurationSeconds = durationSeconds;
+    allocatedSeconds += durationSeconds;
   });
+  return segments;
+}
 
-  // Step 5: If user is authenticated, persist trip in route history
-  if (userId) {
+function trafficClass(speed, freeFlow, isStale = false) {
+  if (isStale || !Number.isFinite(speed) || !Number.isFinite(freeFlow) || freeFlow <= 0) return 'unknown';
+  const ratio = Math.max(0, Math.min(1, speed / freeFlow));
+  if (ratio >= 0.8) return 'free_flowing';
+  if (ratio >= 0.6) return 'moderate';
+  if (ratio >= 0.4) return 'heavy';
+  return 'severe';
+}
+
+function addObservation(segment, match, providerStatus) {
+  if (!match || !match.matched || !match.observation) {
+    return {
+      ...segment,
+      observation: null,
+      trafficClass: 'unknown',
+      valueType: 'unavailable',
+      trafficStatus: providerStatus,
+      matchReason: match?.reason || 'no_match'
+    };
+  }
+  const observation = match.observation;
+  return {
+    ...segment,
+    observation,
+    providerSegmentReference: observation.providerSegmentReference,
+    observedSpeedKmh: observation.observedSpeedKmh,
+    freeFlowSpeedKmh: observation.freeFlowSpeedKmh,
+    jamFactor: observation.jamFactor,
+    roadClosure: observation.roadClosure === true,
+    observedAt: observation.observedAt,
+    source: observation.source,
+    confidence: observation.confidence,
+    matchDistanceMeters: Math.round(match.distanceMeters),
+    matchHeadingDelta: match.headingDelta !== undefined ? Math.round(match.headingDelta) : null,
+    matchConfidence: match.confidence || 'medium',
+    trafficClass: trafficClass(observation.observedSpeedKmh, observation.freeFlowSpeedKmh),
+    valueType: 'observed',
+    trafficStatus: providerStatus
+  };
+}
+
+async function enrichCandidate(route, traffic) {
+  const hasFreshTraffic = traffic.status === 'live' || traffic.status === 'cached';
+  const observations = hasFreshTraffic ? traffic.observations : [];
+  let segments = createSegmentsFromRoute(route).map(segment =>
+    addObservation(segment, trafficAdapter.matchObservationToSegment(segment, observations), traffic.status)
+  );
+  for (const segment of segments) {
+    // Incident enrichment is additive. A database outage must not suppress route
+    // and traffic-provider results that remain independently available.
     try {
-      await historyService.logRouteHistory(userId, {
-        origin_lat: origin.lat,
-        origin_lng: origin.lng,
-        origin_name: 'Origin Location',
-        dest_lat: destination.lat,
-        dest_lng: destination.lng,
-        dest_name: 'Destination Location',
-        transport_mode: mode,
-        total_distance_meters: routeResult.summary.totalDistanceMeters,
-        total_duration_seconds: routeResult.summary.totalDurationSeconds,
-        traditional_duration_seconds: routeResult.summary.traditionalDurationSeconds,
-        time_saved_seconds: routeResult.summary.timeSavedSeconds,
-        simulated_incident: activeIncident
-      });
-    } catch (historyErr) {
-      logger.warn(`Failed to auto-log route history: ${historyErr.message}`);
+      const incident = await incidentService.getActiveIncidentForChunk(segment.segmentId);
+      segment.incident = incident || null;
+    } catch (error) {
+      logger.warn(`Incident lookup unavailable for ${segment.segmentId}: ${error.message}`);
+      segment.incident = null;
+      segment.incidentStatus = 'unavailable';
     }
   }
+  return segments.map(segment => {
+    const hasObserved = Number.isFinite(segment.observedSpeedKmh);
+    const valueType = hasObserved ? 'observed' : 'unavailable';
+    return {
+      ...segment,
+      effectiveSpeedKmh: hasObserved ? segment.observedSpeedKmh : null,
+      predictedSpeedKmh: null,
+      predictionStatus: 'unavailable',
+      predictionError: 'No validated live features are available for the research model.',
+      valueType,
+      trafficClass: hasObserved ? segment.trafficClass : 'unknown',
+      costSource: hasObserved && !segment.providerTrafficIncluded ? 'observed-speed' : 'routing-provider-duration'
+    };
+  });
+}
 
-  return routeResult;
+async function getDynamicDirections({
+  origin,
+  destination,
+  originName,
+  destinationName,
+  mode = 'car',
+  simulatedIncident = null,
+  userId = null,
+  strategy = 'provider'
+}) {
+  logger.info(`Processing traffic-aware directions: mode=${mode}, strategy=${strategy}, user=${userId || 'anonymous'}`);
+
+  // The bundled graph only contains coarse corridor connectors and static costs.
+  // It has neither validated live model inputs nor road-following edge geometry,
+  // so it must not be exposed as a production route.
+  if (['ml_astar', 'graph', 'ml_dynamic', 'dynamic_ml'].includes(strategy)) {
+    throw new ServiceUnavailableError(
+      'ML-optimized routing is unavailable for live trips because its model inputs and road geometries are not validated. Use provider routing explicitly.',
+      { code: 'ML_ROUTING_NOT_OPERATIONAL', network: 'Bengaluru research corridor graph' }
+    );
+  }
+  if (strategy !== 'provider') {
+    throw new BadRequestError(`Unsupported routing strategy "${strategy}".`, { supportedStrategies: ['provider'] });
+  }
+
+  // The routing provider is authoritative for route geometry and mode-specific
+  // duration. Direction-matched speed observations can supplement non-traffic
+  // routers; the research model is not used without validated live features.
+  const candidates = await getOsrmRoutes(origin, destination, mode);
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    throw new ServiceUnavailableError('The configured routing provider returned no usable routes.', { code: 'NO_ROUTE_CANDIDATES' });
+  }
+  const traffic = await trafficAdapter.getFlowForRoutes(candidates);
+  const evaluated = [];
+  for (const candidate of candidates) {
+    const chunks = await enrichCandidate(candidate, traffic);
+    const incident = simulatedIncident && chunks.find(chunk => chunk.segmentId === simulatedIncident.chunkId || chunk.legacyChunkId === simulatedIncident.chunkId)
+      ? simulatedIncident : null;
+    const rawSteps = candidate.legs?.[0]?.steps || [];
+    const result = routingAdapter.solveDynamicRoute({
+      chunks,
+      mode,
+      incident,
+      baselineDurationSeconds: candidate.durationSeconds,
+      rawSteps
+    });
+    const hasPredictions = chunks.some(c => c.valueType === 'predicted');
+    const routingStrategy = `${candidate.provider}-${hasPredictions ? 'ml-traffic' : 'provider-routing'}`;
+    result.summary.routingStrategy = routingStrategy;
+    result.summary.isMlOptimized = hasPredictions;
+
+    evaluated.push({
+      routeId: candidate.id,
+      provider: candidate.provider,
+      routingStrategy,
+      isMlOptimized: hasPredictions,
+      // The browser consumes `coordinates` as [lat, lng]. Retain the complete
+      // provider geometry rather than rebuilding it from chunk endpoints.
+      coordinates: candidate.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
+      distanceMeters: candidate.distanceMeters,
+      baselineDurationSeconds: candidate.durationSeconds,
+      trafficMetrics: candidate.trafficMetrics || null,
+      ...result
+    });
+  }
+
+  evaluated.sort((a, b) => a.summary.totalDurationSeconds - b.summary.totalDurationSeconds);
+  const selected = evaluated[0];
+  const trafficMatchedSegments = selected.chunks.filter((chunk) => chunk.valueType === 'observed').length;
+  const liveTrafficDurationAvailable = Number.isFinite(selected.trafficMetrics?.liveTrafficDurationSeconds);
+  const trafficAdjustsEta = liveTrafficDurationAvailable || (
+    ['car', 'driving', 'motorcycle', 'bike'].includes(mode) && trafficMatchedSegments > 0 && selected.provider !== 'TOMTOM'
+  );
+  const usesLiveTraffic = (traffic.status === 'live' || traffic.status === 'cached') && trafficAdjustsEta;
+  // A provider response is only live when observations were direction-matched
+  // and used in ETA. Model output and a router-only ETA must not be presented
+  // as traffic estimates.
+  const trafficStatus = liveTrafficDurationAvailable || usesLiveTraffic
+    ? (usesLiveTraffic && traffic.status === 'cached' ? 'cached' : 'live')
+    : (traffic.status === 'stale' ? 'stale' : 'unavailable');
+  const response = {
+    routeId: selected.routeId,
+    selectedRouteId: selected.routeId,
+    status: trafficStatus,
+    routingStrategy: selected.routingStrategy || `${selected.provider}-traffic-aware`,
+    isMlOptimized: selected.isMlOptimized !== undefined ? selected.isMlOptimized : selected.chunks.some((chunk) => chunk.valueType === 'predicted'),
+    traffic: {
+      status: trafficStatus,
+      providerStatus: traffic.status,
+      sourceUpdated: traffic.sourceUpdated || null,
+      reason: traffic.reason || null,
+      cached: Boolean(traffic.cached),
+      cacheAgeMs: traffic.cacheAgeMs || null,
+      cachedAt: traffic.cachedAt || null,
+      observationCount: traffic.observationCount || 0,
+      freshness: traffic.freshness || traffic.status,
+      matchedSegmentCount: trafficMatchedSegments,
+      adjustsEta: trafficAdjustsEta,
+      routingProvider: selected.provider,
+      providerEstimateIncludesTraffic: selected.provider === 'TOMTOM' && selected.trafficMetrics?.trafficRequested === true,
+      routeTrafficMetrics: selected.trafficMetrics || null,
+      etaMode: mode
+    },
+    summary: selected.summary,
+    chunks: selected.chunks,
+    steps: selected.steps,
+    routes: evaluated
+  };
+  if (userId) {
+    await historyService.logRouteHistory(userId, {
+      origin_lat: origin.lat, origin_lng: origin.lng, origin_name: originName || `${origin.lat}, ${origin.lng}`,
+      dest_lat: destination.lat, dest_lng: destination.lng, dest_name: destinationName || `${destination.lat}, ${destination.lng}`,
+      transport_mode: mode, total_distance_meters: selected.summary.totalDistanceMeters,
+      total_duration_seconds: selected.summary.totalDurationSeconds,
+      traditional_duration_seconds: selected.summary.traditionalDurationSeconds,
+      time_saved_seconds: selected.summary.timeSavedSeconds, simulated_incident: simulatedIncident
+    }).catch(error => logger.warn(`Failed to log route history: ${error.message}`));
+  }
+  return response;
 }
 
 module.exports = {
   getDynamicDirections,
   calculateDistanceMeters,
-  generateCorridorChunks
+  createSegmentsFromRoute,
+  trafficClass,
+  evaluateReroute: mlAdapter.evaluateReroute,
+  updateGraphTraffic: mlAdapter.updateGraphTraffic,
+  getNetworkInfo: mlAdapter.getNetworkInfo
 };

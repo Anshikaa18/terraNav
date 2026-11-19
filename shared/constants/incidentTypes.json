@@ -1,0 +1,21 @@
+{
+  "types": [
+    "accident",
+    "roadblock",
+    "construction",
+    "flooding",
+    "heavy_traffic",
+    "other"
+  ],
+  "severities": [
+    "low",
+    "medium",
+    "high",
+    "critical"
+  ],
+  "statuses": [
+    "active",
+    "cleared",
+    "expired"
+  ]
+}

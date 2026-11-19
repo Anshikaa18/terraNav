@@ -1,0 +1,340 @@
+{
+  "execution_timestamp": "2026-10-23T22:10:23.324527",
+  "total_runtime_sec": 84.09,
+  "segment_experiments": {
+    "regimes": {
+      "Regime_A_Random_Split": {
+        "Dummy_Mean": {
+          "mae": 9.977,
+          "rmse": 12.201,
+          "medae": 8.81,
+          "r2": -0.0001,
+          "mape_percent": 31.51,
+          "unit": "km/h",
+          "n_samples": 6705,
+          "fit_time_sec": 0.0,
+          "model_name": "Dummy_Mean"
+        },
+        "Ridge_Linear": {
+          "mae": 7.786,
+          "rmse": 9.742,
+          "medae": 6.591,
+          "r2": 0.3623,
+          "mape_percent": 23.35,
+          "unit": "km/h",
+          "n_samples": 6705,
+          "fit_time_sec": 0.031,
+          "model_name": "Ridge_Linear"
+        },
+        "HistGradientBoosting": {
+          "mae": 7.708,
+          "rmse": 9.667,
+          "medae": 6.539,
+          "r2": 0.3721,
+          "mape_percent": 23.08,
+          "unit": "km/h",
+          "n_samples": 6705,
+          "fit_time_sec": 7.646,
+          "model_name": "HistGradientBoosting"
+        },
+        "ExtraTrees": {
+          "mae": 7.821,
+          "rmse": 9.82,
+          "medae": 6.623,
+          "r2": 0.3521,
+          "mape_percent": 23.35,
+          "unit": "km/h",
+          "n_samples": 6705,
+          "fit_time_sec": 8.856,
+          "model_name": "ExtraTrees"
+        }
+      },
+      "Regime_B_Unseen_Corridors": {
+        "Dummy_Mean": {
+          "mae": 10.628,
+          "rmse": 13.23,
+          "medae": 9.141,
+          "r2": -0.1161,
+          "mape_percent": 27.52,
+          "unit": "km/h",
+          "n_samples": 6815,
+          "fit_time_sec": 0.0,
+          "model_name": "Dummy_Mean"
+        },
+        "Ridge_Linear": {
+          "mae": 8.071,
+          "rmse": 10.244,
+          "medae": 6.648,
+          "r2": 0.3309,
+          "mape_percent": 22.02,
+          "unit": "km/h",
+          "n_samples": 6815,
+          "fit_time_sec": 0.018,
+          "model_name": "Ridge_Linear"
+        },
+        "HistGradientBoosting": {
+          "mae": 8.154,
+          "rmse": 10.385,
+          "medae": 6.688,
+          "r2": 0.3124,
+          "mape_percent": 21.95,
+          "unit": "km/h",
+          "n_samples": 6815,
+          "fit_time_sec": 0.548,
+          "model_name": "HistGradientBoosting"
+        },
+        "ExtraTrees": {
+          "mae": 8.166,
+          "rmse": 10.399,
+          "medae": 6.724,
+          "r2": 0.3105,
+          "mape_percent": 22.25,
+          "unit": "km/h",
+          "n_samples": 6815,
+          "fit_time_sec": 9.578,
+          "model_name": "ExtraTrees"
+        }
+      },
+      "Regime_C_Chronological_2024": {
+        "Dummy_Mean": {
+          "mae": 9.99,
+          "rmse": 12.314,
+          "medae": 8.788,
+          "r2": -0.0,
+          "mape_percent": 31.82,
+          "unit": "km/h",
+          "n_samples": 10495,
+          "fit_time_sec": 0.0,
+          "model_name": "Dummy_Mean"
+        },
+        "Ridge_Linear": {
+          "mae": 7.778,
+          "rmse": 9.892,
+          "medae": 6.343,
+          "r2": 0.3546,
+          "mape_percent": 23.54,
+          "unit": "km/h",
+          "n_samples": 10495,
+          "fit_time_sec": 0.012,
+          "model_name": "Ridge_Linear"
+        },
+        "HistGradientBoosting": {
+          "mae": 7.717,
+          "rmse": 9.843,
+          "medae": 6.289,
+          "r2": 0.3609,
+          "mape_percent": 23.28,
+          "unit": "km/h",
+          "n_samples": 10495,
+          "fit_time_sec": 0.991,
+          "model_name": "HistGradientBoosting"
+        },
+        "ExtraTrees": {
+          "mae": 7.865,
+          "rmse": 10.022,
+          "medae": 6.406,
+          "r2": 0.3375,
+          "mape_percent": 23.65,
+          "unit": "km/h",
+          "n_samples": 10495,
+          "fit_time_sec": 8.911,
+          "model_name": "ExtraTrees"
+        }
+      }
+    },
+    "ablation": {
+      "HGBR_All_23_With_Leakage": {
+        "mae": 1.135,
+        "rmse": 1.475,
+        "medae": 0.907,
+        "r2": 0.9854,
+        "mape_percent": 3.16,
+        "unit": "km/h",
+        "n_samples": 6705,
+        "fit_time_sec": 0.762,
+        "model_name": "HGBR_With_Leakage"
+      },
+      "HGBR_Clean_17_No_Leakage": {
+        "mae": 7.708,
+        "rmse": 9.667,
+        "medae": 6.539,
+        "r2": 0.3721,
+        "mape_percent": 23.08,
+        "unit": "km/h",
+        "n_samples": 6705,
+        "fit_time_sec": 7.646,
+        "model_name": "HistGradientBoosting"
+      }
+    },
+    "latency": {
+      "batch_1": {
+        "batch_size": 1,
+        "median_latency_ms": 7.16,
+        "p95_latency_ms": 20.419,
+        "p99_latency_ms": 22.23,
+        "throughput_rows_per_sec": 139.7
+      },
+      "batch_16": {
+        "batch_size": 16,
+        "median_latency_ms": 6.84,
+        "p95_latency_ms": 8.152,
+        "p99_latency_ms": 8.913,
+        "throughput_rows_per_sec": 2339.3
+      },
+      "batch_64": {
+        "batch_size": 64,
+        "median_latency_ms": 7.012,
+        "p95_latency_ms": 10.128,
+        "p99_latency_ms": 10.569,
+        "throughput_rows_per_sec": 9126.7
+      },
+      "batch_256": {
+        "batch_size": 256,
+        "median_latency_ms": 8.362,
+        "p95_latency_ms": 21.742,
+        "p99_latency_ms": 77.911,
+        "throughput_rows_per_sec": 30612.9
+      }
+    }
+  },
+  "trajectory_experiments": {
+    "horizon_5s": {
+      "n_train": 27044,
+      "n_val": 7459,
+      "n_test": 7177,
+      "persistence": {
+        "mae": 10.199,
+        "rmse": 14.127,
+        "medae": 7.243,
+        "r2": 0.2505,
+        "mape_percent": 58.71,
+        "unit": "km/h",
+        "n_samples": 7177
+      },
+      "rolling_5s_mean": {
+        "mae": 11.236,
+        "rmse": 15.072,
+        "medae": 8.51,
+        "r2": 0.1469,
+        "mape_percent": 72.79,
+        "unit": "km/h",
+        "n_samples": 7177
+      },
+      "hist_gradient_boosting": {
+        "mae": 8.751,
+        "rmse": 11.85,
+        "medae": 6.893,
+        "r2": 0.4726,
+        "mape_percent": 66.79,
+        "unit": "km/h",
+        "n_samples": 7177,
+        "fit_time_sec": 0.953,
+        "model_name": "HistGradientBoosting"
+      },
+      "extra_trees": {
+        "mae": 7.619,
+        "rmse": 10.689,
+        "medae": 5.53,
+        "r2": 0.5709,
+        "mape_percent": 58.05,
+        "unit": "km/h",
+        "n_samples": 7177,
+        "fit_time_sec": 8.171,
+        "model_name": "ExtraTrees"
+      },
+      "selected_model": "ExtraTrees"
+    },
+    "horizon_15s": {
+      "n_train": 20224,
+      "n_val": 5477,
+      "n_test": 5206,
+      "persistence": {
+        "mae": 15.591,
+        "rmse": 20.47,
+        "medae": 11.657,
+        "r2": -0.7249,
+        "mape_percent": 128.9,
+        "unit": "km/h",
+        "n_samples": 5206
+      },
+      "rolling_5s_mean": {
+        "mae": 16.264,
+        "rmse": 21.034,
+        "medae": 12.508,
+        "r2": -0.8213,
+        "mape_percent": 138.37,
+        "unit": "km/h",
+        "n_samples": 5206
+      },
+      "hist_gradient_boosting": {
+        "mae": 13.149,
+        "rmse": 17.022,
+        "medae": 10.289,
+        "r2": -0.1928,
+        "mape_percent": 135.05,
+        "unit": "km/h",
+        "n_samples": 5206,
+        "fit_time_sec": 7.724,
+        "model_name": "HistGradientBoosting"
+      },
+      "extra_trees": {
+        "mae": 11.045,
+        "rmse": 14.734,
+        "medae": 8.245,
+        "r2": 0.1064,
+        "mape_percent": 107.02,
+        "unit": "km/h",
+        "n_samples": 5206,
+        "fit_time_sec": 5.261,
+        "model_name": "ExtraTrees"
+      },
+      "selected_model": "ExtraTrees"
+    },
+    "horizon_30s": {
+      "n_train": 11025,
+      "n_val": 2811,
+      "n_test": 2717,
+      "persistence": {
+        "mae": 17.31,
+        "rmse": 21.862,
+        "medae": 14.809,
+        "r2": -1.3254,
+        "mape_percent": 142.12,
+        "unit": "km/h",
+        "n_samples": 2717
+      },
+      "rolling_5s_mean": {
+        "mae": 17.412,
+        "rmse": 21.885,
+        "medae": 14.607,
+        "r2": -1.3302,
+        "mape_percent": 146.5,
+        "unit": "km/h",
+        "n_samples": 2717
+      },
+      "hist_gradient_boosting": {
+        "mae": 12.072,
+        "rmse": 15.302,
+        "medae": 10.061,
+        "r2": -0.1392,
+        "mape_percent": 115.74,
+        "unit": "km/h",
+        "n_samples": 2717,
+        "fit_time_sec": 0.854,
+        "model_name": "HistGradientBoosting"
+      },
+      "extra_trees": {
+        "mae": 12.189,
+        "rmse": 15.22,
+        "medae": 10.609,
+        "r2": -0.127,
+        "mape_percent": 107.96,
+        "unit": "km/h",
+        "n_samples": 2717,
+        "fit_time_sec": 2.689,
+        "model_name": "ExtraTrees"
+      },
+      "selected_model": "HistGradientBoosting"
+    }
+  }
+}

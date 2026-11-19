@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — External Services Controller
+ * ChunkFlow AI — External Services Controller
  * Member 3: Backend Integration & Microservices
  */
 
@@ -10,8 +10,8 @@ const { sendSuccess } = require('../_lib/errors');
 
 async function geocode(req, res, next) {
   try {
-    const { q, limit } = req.query;
-    const results = await geocoding.searchPlaces(q, limit);
+    const { q, limit, lat, lng } = req.query;
+    const results = await geocoding.searchPlaces(q, limit, lat, lng);
     return sendSuccess(res, results, 'Geocoding search completed', 200, { count: results.length });
   } catch (err) {
     return next(err);
@@ -30,8 +30,8 @@ async function reverseGeocode(req, res, next) {
 
 async function searchPOIs(req, res, next) {
   try {
-    const { lat, lng, radius, category } = req.query;
-    const results = await poi.searchNearbyPOIs({ lat, lng, radiusMeters: radius, category });
+    const { lat, lng, radius, category, limit } = req.query;
+    const results = await poi.searchNearbyPOIs({ lat, lng, radiusMeters: radius, category, limit });
     return sendSuccess(res, results, 'Nearby POIs retrieved', 200, { count: results.length });
   } catch (err) {
     return next(err);

@@ -15,14 +15,14 @@ import SettingsPage from './pages/SettingsPage.jsx';
 
 export default function App() {
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#090c0f] text-[#edf3f1]">
+    <div className="flex flex-col h-[100dvh] w-screen overflow-hidden bg-[var(--background)] text-[var(--text)]">
       {/* Top Navbar */}
       <Navbar />
 
       {/* Main Workspace with Sidebar and View */}
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar />
-        <main className="flex-1 relative overflow-hidden">
+        <main className="flex-1 relative overflow-hidden transition-all duration-300 ease-in-out">
           <Routes>
             <Route path="/" element={<MapPage />} />
             <Route path="/search" element={<SearchPage />} />

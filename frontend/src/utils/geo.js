@@ -20,27 +20,34 @@ export function calculateHaversineDistanceKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-export function formatDistance(km, unit = 'km') {
+export function getStoredDistanceUnit() {
+  if (typeof window === 'undefined') return 'km';
+  const u = localStorage.getItem('terranav_units');
+  return (u === 'm' || u === 'meters') ? 'm' : 'km';
+}
+
+export function formatDistance(km, unit = null) {
   if (km === undefined || km === null || isNaN(km)) return '';
-  if (unit === 'miles') {
-    const miles = km * 0.621371;
-    if (miles < 0.1) return `${Math.round(miles * 5280)} ft`;
-    return `${miles.toFixed(1)} mi`;
+  const activeUnit = unit || getStoredDistanceUnit();
+  const numKm = Number(km);
+  if (!Number.isFinite(numKm) || numKm < 0) return '';
+  if (activeUnit === 'm' || activeUnit === 'meters') {
+    return `${Math.round(numKm * 1000)} m`;
   }
-  if (km < 1) {
-    return `${Math.round(km * 1000)} m`;
-  }
-  return `${km.toFixed(1)} km`;
+  return `${numKm.toFixed(1)} km`;
 }
 
 export function formatDuration(seconds) {
-  if (!seconds || isNaN(seconds)) return '';
-  if (seconds < 60) return `${Math.round(seconds)} sec`;
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const remMinutes = minutes % 60;
-  return `${hours} hr ${remMinutes > 0 ? remMinutes + ' min' : ''}`.trim();
+  if (seconds === undefined || seconds === null || seconds === '') return '';
+  const val = Number(seconds);
+  if (!Number.isFinite(val) || val < 0) return '';
+  const totalMinutes = Math.max(val > 0 ? 1 : 0, Math.round(val / 60));
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const remMinutes = totalMinutes % 60;
+  return remMinutes > 0 ? `${hours} hr ${remMinutes} min` : `${hours} hr`;
 }
 
 export function formatCoordinates(lat, lon) {

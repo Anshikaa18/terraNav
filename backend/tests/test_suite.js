@@ -1,9 +1,16 @@
 /**
- * TerraNav AI — Automated Integration Test Suite
+ * ChunkFlow AI — Automated Integration Test Suite
  * Member 3: Backend Integration, Microservices & Data Layer
  */
 
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+process.env.ALLOW_IN_MEMORY_DB = 'true';
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'terranav-test-jwt-secret-32chars-min';
+const runLiveProviderTests = process.env.RUN_LIVE_PROVIDER_TESTS === 'true';
 const http = require('http');
+const db = require('../api/_lib/db');
 const { app } = require('../api/server');
 
 let server;
@@ -70,8 +77,12 @@ function assert(condition, testName, extra = '') {
 
 async function runTests() {
   console.log('\n========================================================');
-  console.log('  TerraNav AI — Member 3 Integration Test Suite');
+  console.log('  ChunkFlow AI — Member 3 Integration Test Suite');
   console.log('========================================================\n');
+
+  // Initialize DB connection probe
+  const dbStatus = await db.testConnection();
+  console.log(`[Database Connection Mode: ${dbStatus.mode} (Connected: ${dbStatus.connected})]`);
 
   // Start temporary server
   await new Promise(resolve => {
@@ -88,6 +99,16 @@ async function runTests() {
     assert(health.data.success === true, 'GET /api/health success is true');
     assert(health.data.data.service === 'terranav-backend', 'Service identifies as terranav-backend');
     assert(health.data.data.database !== undefined, 'Database pool status is reported');
+    if (dbStatus.mode === 'mysql') {
+      assert(health.data.data.database.connected === true, 'Database reports connected: true (MySQL active)');
+      assert(health.data.data.database.mode === 'mysql', 'Database mode reports mysql');
+    } else {
+      assert(health.data.data.database.connected === false, 'In-memory test profile reports connected: false');
+      assert(
+        ['in-memory-test-fallback', 'in-memory-fallback'].includes(health.data.data.database.mode),
+        'Database mode reports in-memory fallback in test profile'
+      );
+    }
 
     // --------------------------------------------------------------------------
     // LEVEL 2: Authentication
@@ -125,8 +146,10 @@ async function runTests() {
       name: 'Indiranagar Metro',
       latitude: 12.9784,
       longitude: 77.6408,
-      address: 'CMH Road, Indiranagar',
-      category: 'work'
+      address: { road: 'CMH Road', suburb: 'Indiranagar', display_name: 'CMH Road, Indiranagar' },
+      category: 'station',
+      collectionName: 'Work & Transit',
+      notes: 'Use the east entrance'
     }, authToken);
     assert(createPlaceRes.status === 201, 'POST /api/saved returns HTTP 201');
     assert(createPlaceRes.data.data.id !== undefined, 'Saved place created with ID');
@@ -140,6 +163,8 @@ async function runTests() {
     const getPlaceRes = await runRequest('GET', `/api/saved/${savedPlaceId}`, null, authToken);
     assert(getPlaceRes.status === 200, 'GET /api/saved/:id returns HTTP 200');
     assert(getPlaceRes.data.data.name === 'Indiranagar Metro', 'Saved place name matches');
+    assert(getPlaceRes.data.data.address === 'CMH Road, Indiranagar', 'Structured geocoding address is normalized safely');
+    assert(getPlaceRes.data.data.collection_name === 'Work & Transit' && getPlaceRes.data.data.notes === 'Use the east entrance', 'Saved place collection and note persist');
 
     const updatePlaceRes = await runRequest('PUT', `/api/saved/${savedPlaceId}`, {
       name: 'Indiranagar Metro Hub',
@@ -177,6 +202,10 @@ async function runTests() {
     const listHistoryRes = await runRequest('GET', '/api/history', null, authToken);
     assert(listHistoryRes.status === 200, 'GET /api/history returns HTTP 200');
     assert(listHistoryRes.data.data.length >= 1, 'Route history list contains logged route');
+    const clearHistoryRes = await runRequest('DELETE', '/api/history', null, authToken);
+    assert(clearHistoryRes.status === 200, 'DELETE /api/history clears the authenticated user history');
+    const emptyHistoryRes = await runRequest('GET', '/api/history', null, authToken);
+    assert(emptyHistoryRes.data.data.length === 0, 'Clear All removes history entries');
 
     // --------------------------------------------------------------------------
     // LEVEL 5: Incidents
@@ -205,17 +234,29 @@ async function runTests() {
     const routeRes = await runRequest('POST', '/api/directions/dynamic', {
       origin: { lat: 12.9756, lng: 77.6066 },
       destination: { lat: 12.9352, lng: 77.6245 },
+      originName: 'MG Road',
+      destinationName: 'Koramangala',
       mode: 'car'
     }, authToken);
     assert(routeRes.status === 200, 'POST /api/directions/dynamic returns HTTP 200');
+    const namedRouteHistory = await runRequest('GET', '/api/history', null, authToken);
+    assert(namedRouteHistory.data.data.some((item) => item.origin_name === 'MG Road' && item.dest_name === 'Koramangala'), 'Route history preserves origin and destination names');
     assert(routeRes.data.summary !== undefined, 'Response contains summary block');
     assert(routeRes.data.summary.totalDistanceMeters > 0, 'totalDistanceMeters is computed');
-    assert(routeRes.data.summary.totalDurationSeconds > 0, 'totalDurationSeconds is computed');
-    assert(routeRes.data.summary.traditionalDurationSeconds >= routeRes.data.summary.totalDurationSeconds, 'Traditional ETA >= Dynamic ETA');
+    assert(typeof routeRes.data.summary.traditionalDurationSeconds === 'number' && routeRes.data.summary.traditionalDurationSeconds > 0, 'Traditional baseline duration is reported');
+    assert(typeof routeRes.data.summary.timeSavedSeconds === 'number', 'Time saved is computed independently');
+    assert(routeRes.data.summary.traditionalDurationSeconds - routeRes.data.summary.totalDurationSeconds === routeRes.data.summary.timeSavedSeconds, 'Savings equals traditional duration minus dynamic duration');
     assert(Array.isArray(routeRes.data.chunks), 'Response contains chunks array');
     assert(routeRes.data.chunks.length > 0, 'Corridor decomposed into 200-500m chunks');
-    assert(routeRes.data.chunks[0].predictedSpeedKmh > 0, 'Chunk has ML predicted speed');
-    assert(routeRes.data.chunks[0].color !== undefined, 'Chunk has congestion color token');
+    assert(routeRes.data.chunks[0].trafficClass !== undefined, 'Chunk has traffic classification');
+    assert(
+      ['unavailable', 'predicted', 'observed'].includes(routeRes.data.chunks[0].valueType),
+      'Chunk valueType is explicitly observed, predicted, or unavailable'
+    );
+    assert(
+      ['routing-provider-duration', 'chunkflow-prediction', 'observed-speed'].includes(routeRes.data.chunks[0].costSource),
+      'Route reports valid cost source'
+    );
     assert(Array.isArray(routeRes.data.steps), 'Response contains navigation steps');
 
     // Test 6B: Incident Simulation Rerouting
@@ -231,7 +272,7 @@ async function runTests() {
     assert(incidentRouteRes.status === 200, 'Dynamic route with roadblock incident succeeds');
     assert(incidentRouteRes.data.summary.totalDistanceMeters > 0, 'Rerouted path solved around roadblock');
 
-    // Test 6C: Motorcycle Mode Filtering
+    // Test 6C: Motorcycle & Bicycle Mode Routing
     const motoRouteRes = await runRequest('POST', '/api/directions/dynamic', {
       origin: { lat: 12.9756, lng: 77.6066 },
       destination: { lat: 12.9352, lng: 77.6245 },
@@ -240,18 +281,100 @@ async function runTests() {
     assert(motoRouteRes.status === 200, 'Motorcycle mode dynamic route succeeds');
     assert(motoRouteRes.data.summary.mode === 'motorcycle', 'Mode reflects motorcycle profile');
 
+    const bicycleRouteRes = await runRequest('POST', '/api/directions/dynamic', {
+      origin: { lat: 12.9756, lng: 77.6066 },
+      destination: { lat: 12.9352, lng: 77.6245 },
+      mode: 'bicycle'
+    });
+    assert(bicycleRouteRes.status === 200, 'Bicycle mode dynamic route succeeds');
+    assert(bicycleRouteRes.data.summary.mode === 'bicycle', 'Mode reflects bicycle profile');
+    assert(bicycleRouteRes.data.summary.totalDurationSeconds > motoRouteRes.data.summary.totalDurationSeconds, 'Pedal bicycle route takes longer than motorized motorcycle');
+
+    // Test 6D: Traffic-Aware Route Cost Function & Ranking Verification
+    console.log('\n[Level 6D: Traffic-Aware Route Ranking & Cost Verification]');
+    const routingAdapter = require('../api/directions/routingAdapter');
+    const { trafficClass } = require('../api/directions/service');
+
+    // 1. Formula check: 1000m at 60 km/h should take (1000 / 60) * 3.6 = 60 seconds
+    const costFreeFlow = routingAdapter.calculateChunkCost(
+      { lengthMeters: 1000, providerDurationSeconds: 60, valueType: 'observed', observedSpeedKmh: 60, freeFlowSpeedKmh: 60, hasSignal: false, trafficClass: 'free_flowing' },
+      'car'
+    );
+    assert(
+      costFreeFlow.durationSeconds === 60,
+      'travel_time_seconds = distance_metres / speed_kmh * 3.6 (1000m @ 60km/h = 60s)'
+    );
+
+    // 2. Heavy congestion: 1000m at 15 km/h + 60s severe queue delay
+    const costCongested = routingAdapter.calculateChunkCost(
+      { lengthMeters: 1000, providerDurationSeconds: 60, valueType: 'observed', observedSpeedKmh: 15, freeFlowSpeedKmh: 60, hasSignal: false, trafficClass: 'severe' },
+      'car'
+    );
+    assert(
+      costCongested.durationSeconds > costFreeFlow.durationSeconds,
+      'Severe congestion route takes significantly longer than free-flow'
+    );
+
+    // 3. Candidate route ranking: Congested route loses to faster alternative
+    const routeCongested = routingAdapter.solveDynamicRoute({
+      chunks: [
+        { lengthMeters: 2000, providerDurationSeconds: 120, valueType: 'observed', observedSpeedKmh: 15, freeFlowSpeedKmh: 60, trafficClass: 'severe' },
+        { lengthMeters: 2000, providerDurationSeconds: 120, valueType: 'observed', observedSpeedKmh: 10, freeFlowSpeedKmh: 60, trafficClass: 'severe' }
+      ],
+      mode: 'car', baselineDurationSeconds: 240
+    });
+    const routeClear = routingAdapter.solveDynamicRoute({
+      chunks: [
+        { lengthMeters: 2500, providerDurationSeconds: 100, valueType: 'observed', observedSpeedKmh: 60, freeFlowSpeedKmh: 60, trafficClass: 'free_flowing' },
+        { lengthMeters: 2500, providerDurationSeconds: 100, valueType: 'observed', observedSpeedKmh: 60, freeFlowSpeedKmh: 60, trafficClass: 'free_flowing' }
+      ],
+      mode: 'car', baselineDurationSeconds: 200
+    });
+    assert(
+      routeClear.summary.totalDurationSeconds < routeCongested.summary.totalDurationSeconds,
+      'Congested route loses to faster clear alternative in dynamic ranking'
+    );
+
+    // 4. Safe speed bounds: non-finite or negative speeds clamped safely
+    const safeCostNegative = routingAdapter.calculateChunkCost(
+      { lengthMeters: 500, providerDurationSeconds: 10, observedSpeedKmh: -50 },
+      'car'
+    );
+    assert(
+      safeCostNegative.durationSeconds > 0 && Number.isFinite(safeCostNegative.durationSeconds),
+      'Negative speed is safely clamped to positive bounds'
+    );
+
+    // 5. Traffic class mapping
+    assert(trafficClass(50, 50) === 'free_flowing', 'Speed ratio 1.0 is free_flowing');
+    assert(trafficClass(35, 50) === 'moderate', 'Speed ratio 0.7 is moderate');
+    assert(trafficClass(25, 50) === 'heavy', 'Speed ratio 0.5 is heavy');
+    assert(trafficClass(15, 50) === 'severe', 'Speed ratio 0.3 is severe');
+    assert(trafficClass(null, 50) === 'unknown', 'Missing speed is unknown (gray)');
+
+
     // --------------------------------------------------------------------------
     // LEVEL 7: External Services
     // --------------------------------------------------------------------------
-    console.log('\n[Level 7: External Services (Nominatim, Overpass, Fallback)]');
-    const geocodeRes = await runRequest('GET', '/api/services/geocode?q=Koramangala&limit=2');
-    assert(geocodeRes.status === 200, 'GET /api/services/geocode returns HTTP 200');
+    console.log('\n[Level 7: External Services (TomTom Places, Fallback)]');
+    if (runLiveProviderTests) {
+      const geocodeRes = await runRequest('GET', '/api/services/geocode?q=Koramangala&limit=2');
+      assert(geocodeRes.status === 200, 'GET /api/services/geocode returns HTTP 200');
 
-    const reverseRes = await runRequest('GET', '/api/services/reverse?lat=12.9756&lng=77.6066');
-    assert(reverseRes.status === 200, 'GET /api/services/reverse returns HTTP 200');
+      const reverseRes = await runRequest('GET', '/api/services/reverse?lat=12.9756&lng=77.6066');
+      assert(reverseRes.status === 200, 'GET /api/services/reverse returns HTTP 200');
 
-    const poiRes = await runRequest('GET', '/api/services/poi?lat=12.9756&lng=77.6066&radius=1000');
-    assert(poiRes.status === 200, 'GET /api/services/poi returns HTTP 200');
+      const poiRes = await runRequest('GET', '/api/services/poi?lat=12.9756&lng=77.6066&radius=1000');
+      assert([200, 502].includes(poiRes.status), 'GET /api/services/poi returns provider results or a clear upstream failure');
+      if (poiRes.status === 502) {
+        assert(poiRes.data.success === false && poiRes.data.error.message.includes('temporarily unavailable'), 'Unavailable TomTom service is reported without fabricated place results');
+      } else {
+        assert(Array.isArray(poiRes.data.data), 'Successful nearby search returns an array of provider places');
+      }
+    } else {
+      console.log('  (skipped live TomTom Places checks; set RUN_LIVE_PROVIDER_TESTS=true to enable)');
+      assert(true, 'Live provider smoke tests skipped in deterministic CI profile');
+    }
 
     // --------------------------------------------------------------------------
     // LEVEL 8: Negative & Error Handling Tests

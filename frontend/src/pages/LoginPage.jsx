@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, Lock, Mail, Loader2, Sparkles } from 'lucide-react';
+import { Lock, Mail, Loader2, Sparkles, Compass } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function LoginPage() {
@@ -34,79 +34,79 @@ export default function LoginPage() {
 
   const handleFillDemo = () => {
     setEmail('demo@terranav.app');
-    setPassword('demo1234');
+    setPassword('password123');
   };
 
   return (
-    <div className="h-[calc(100vh-62px)] flex items-center justify-center p-4 bg-[#090c0f] overflow-y-auto">
-      <div className="w-full max-w-md p-8 rounded bg-[#11171b] border border-[#29353a] shadow-float font-mono">
+    <div className="h-[calc(100vh-64px)] flex items-center justify-center p-4 bg-[var(--background)] overflow-y-auto">
+      <div className="w-full max-w-md p-8 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)]">
         {/* Brand */}
         <div className="flex flex-col items-center text-center mb-6">
-          <span className="text-[#63e7ee] text-3xl font-mono leading-none drop-shadow-[0_0_10px_#63e7ee] mb-2">
-            ◫
+          <span className="w-12 h-12 rounded-2xl bg-[var(--primary)] text-white grid place-items-center shadow-md mb-3">
+            <Compass className="w-6 h-6" />
           </span>
-          <h1 className="font-condensed text-2xl font-bold tracking-wider text-[#edf3f1]">
-            TERRANAV AUTHENTICATION
+          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--text)]">
+            Welcome to ChunkFlow
           </h1>
-          <p className="text-[10px] text-[#8c9a9c] mt-1 uppercase tracking-wider">
-            SECURE ACCESS TO ROUTING PREFERENCES & SAVED PLACES
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Access your saved routes, waypoints, and custom map preferences
           </p>
         </div>
 
         {/* Quick Demo Autofill Pill */}
-        <div className="mb-5 p-3 rounded bg-[#162024] border border-[#29353a] flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#63e7ee]" />
-            <span className="text-[10px] font-semibold text-[#edf3f1] uppercase">
-              Demo Credentials
+        <div className="mb-5 flex items-center justify-between gap-3 px-1 py-1">
+          <div className="flex min-w-0 items-center gap-2 text-[var(--text-secondary)]">
+            <Sparkles className="w-4 h-4 shrink-0 text-[var(--primary)]" />
+            <span className="text-xs font-medium">
+              Demo Credentials Available
             </span>
           </div>
           <button
             type="button"
             onClick={handleFillDemo}
-            className="text-[10px] font-bold text-[#63e7ee] hover:underline uppercase"
+            className="shrink-0 border-0 bg-transparent shadow-none rounded-lg px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--primary)] transition-colors hover:bg-[var(--primary-soft)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--outline)]"
           >
-            AUTO-FILL
+            Auto-fill
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded bg-[#ff5d61]/10 border border-[#ff5d61]/40 text-xs text-[#ff5d61]">
+          <div className="mb-4 p-3 rounded-xl bg-[var(--red)]/10 border border-[var(--red)]/30 text-xs font-medium text-[var(--red)]">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-mono uppercase tracking-wider text-[#8c9a9c] mb-1.5">
-              EMAIL ADDRESS
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
+              Email Address
             </label>
             <div className="relative flex items-center">
-              <Mail className="w-4 h-4 text-[#586769] absolute left-3.5" />
+              <Mail className="w-4 h-4 text-[var(--text-tertiary)] absolute left-3.5" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
                 required
-                className="w-full pl-10 pr-4 py-2.5 rounded bg-[#172125] border border-[#38474b] text-xs text-[#edf3f1] placeholder-[#586769] focus:outline-none focus:border-[#63e7ee] focus:shadow-[0_0_10px_rgba(99,231,238,0.25)] transition-all"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] text-xs font-medium text-[var(--text)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--outline)] focus:ring-2 focus:ring-[var(--primary-soft)] transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-mono uppercase tracking-wider text-[#8c9a9c] mb-1.5">
-              PASSWORD
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1.5">
+              Password
             </label>
             <div className="relative flex items-center">
-              <Lock className="w-4 h-4 text-[#586769] absolute left-3.5" />
+              <Lock className="w-4 h-4 text-[var(--text-tertiary)] absolute left-3.5" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full pl-10 pr-4 py-2.5 rounded bg-[#172125] border border-[#38474b] text-xs text-[#edf3f1] placeholder-[#586769] focus:outline-none focus:border-[#63e7ee] focus:shadow-[0_0_10px_rgba(99,231,238,0.25)] transition-all"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] text-xs font-medium text-[var(--text)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--outline)] focus:ring-2 focus:ring-[var(--primary-soft)] transition-all"
               />
             </div>
           </div>
@@ -114,21 +114,17 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded bg-[#63e7ee] hover:bg-[#7ef1f7] text-[#071014] text-xs font-bold uppercase tracking-wider border border-[#63e7ee] shadow-[0_0_12px_rgba(99,231,238,0.3)] transition-all flex items-center justify-center space-x-2 disabled:opacity-50 mt-2"
+            className="w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[var(--primary)] hover:bg-[var(--primary-strong)] disabled:opacity-50 transition-all flex items-center justify-center space-x-2 shadow-sm mt-2"
           >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <LogIn className="w-4 h-4" />
-            )}
-            <span>{loading ? 'AUTHENTICATING...' : 'SIGN IN'}</span>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
           </button>
         </form>
 
-        <div className="mt-6 text-center text-[10px] text-[#8c9a9c]">
-          DON'T HAVE AN ACCOUNT?{' '}
-          <Link to="/register" className="font-bold text-[#63e7ee] hover:underline">
-            REGISTER ACCOUNT
+        <div className="mt-6 text-center text-xs text-[var(--text-secondary)] border-t border-[var(--border)] pt-4">
+          Don't have an account?{' '}
+          <Link to="/register" className="font-bold text-[var(--primary)] hover:underline">
+            Register here
           </Link>
         </div>
       </div>

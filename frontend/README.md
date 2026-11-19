@@ -1,6 +1,6 @@
-# TerraNav — Frontend
+# ChunkFlow — Frontend
 
-This directory contains the extracted frontend for the TerraNav interactive maps & navigation application, decoupled from the backend serverless functions and database files in `minor-project`.
+This directory contains the extracted frontend for the ChunkFlow interactive maps & navigation application, decoupled from the backend serverless functions and database files in `minor-project`.
 
 ---
 
@@ -14,7 +14,7 @@ frontend/
 │   │   └── style.css            # Compiled Tailwind CSS + Leaflet styling
 │   ├── js/
 │   │   └── app.js               # Bundled modern ES module JavaScript
-│   └── favicon.svg              # TerraNav icon
+│   └── favicon.svg              # ChunkFlow icon
 │
 ├── dist/                        # Standard Vite production build output
 │   ├── index.html

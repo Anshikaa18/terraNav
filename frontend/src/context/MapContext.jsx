@@ -11,15 +11,55 @@ export function MapProvider({ children }) {
   const [mapInstance, setMapInstance] = useState(null);
   const [center, setCenter] = useState([DEFAULT_COORDINATES.lat, DEFAULT_COORDINATES.lon || DEFAULT_COORDINATES.lng]);
   const [zoom, setZoom] = useState(DEFAULT_COORDINATES.zoom);
-  const [activeLayer, setActiveLayer] = useState('dark');
+  const [activeLayer, setActiveLayer] = useState(() => {
+    try {
+      const savedLayer = localStorage.getItem('terranav_map_layer');
+      return savedLayer && TILE_LAYERS[savedLayer]?.available !== false ? savedLayer : 'osm';
+    } catch {
+      return 'osm';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('terranav_map_layer', activeLayer);
+    } catch {
+      // The map remains usable when browser storage is unavailable.
+    }
+  }, [activeLayer]);
   
   // Place & Route state
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [nearbyResults, setNearbyResults] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
+  const [nearbyError, setNearbyError] = useState(null);
   const [routeData, setRouteData] = useState(null);
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
   const [isSearchingNearby, setIsSearchingNearby] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const toggleSidebar = useCallback(() => setIsSidebarOpen((prev) => !prev), []);
+
+  // Settings are persisted in localStorage; subscribe so mounted map panels
+  // re-render immediately when a preference changes.
+  const [, setSettingsRevision] = useState(0);
+  useEffect(() => {
+    const refreshSettings = () => setSettingsRevision(revision => revision + 1);
+    window.addEventListener('terranav_settings_changed', refreshSettings);
+    return () => window.removeEventListener('terranav_settings_changed', refreshSettings);
+  }, []);
+
+  // Smoothly invalidate Leaflet size when sidebar toggles
+  useEffect(() => {
+    if (!mapInstance) return undefined;
+    mapInstance.invalidateSize({ pan: false });
+    const t1 = setTimeout(() => mapInstance.invalidateSize({ pan: false }), 150);
+    const t2 = setTimeout(() => mapInstance.invalidateSize({ pan: false }), 320);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [isSidebarOpen, mapInstance]);
 
   // Live Geolocation hook
   const {
@@ -28,6 +68,7 @@ export function MapProvider({ children }) {
     loading: isLocating,
     error: locationError,
     isWatching: isTrackingLocation,
+    permissionState,
     getCurrentLocation,
     startWatching: startLiveTracking,
     stopWatching: stopLiveTracking
@@ -50,16 +91,39 @@ export function MapProvider({ children }) {
   // Locate user and center map
   const locateUser = useCallback(async () => {
     try {
-      const coords = await getCurrentLocation();
+      const coords = await getCurrentLocation({ enableHighAccuracy: true, timeout: 10000 });
       if (coords?.lat && coords?.lng) {
         flyToLocation(coords.lat, coords.lng, 16);
+        startLiveTracking();
       }
       return coords;
     } catch (err) {
       console.warn('Geolocation error:', err.message);
       throw err;
     }
-  }, [getCurrentLocation, flyToLocation]);
+  }, [getCurrentLocation, flyToLocation, startLiveTracking]);
+
+  // Automatically request live location permission on app initialization
+  useEffect(() => {
+    let mounted = true;
+    const requestInitialLocation = async () => {
+      try {
+        const coords = await getCurrentLocation({ enableHighAccuracy: true, timeout: 10000 });
+        if (mounted && coords?.lat && coords?.lng) {
+          flyToLocation(coords.lat, coords.lng, 15);
+          startLiveTracking();
+        }
+      } catch (err) {
+        console.info('Initial location request prompt dismissed or unavailable:', err.message);
+      }
+    };
+
+    requestInitialLocation();
+
+    return () => {
+      mounted = false;
+    };
+  }, [getCurrentLocation, startLiveTracking, flyToLocation]);
 
   // Select place and open details
   const selectPlace = useCallback((place) => {
@@ -75,6 +139,10 @@ export function MapProvider({ children }) {
 
   // Execute nearby amenities search around current map center or location
   const searchNearby = useCallback(async (categoryId) => {
+    setNearbyResults([]);
+    setNearbyError(null);
+    setSearchResults([]);
+    setSelectedPlace(null);
     try {
       setIsSearchingNearby(true);
       setActiveCategory(categoryId);
@@ -104,11 +172,18 @@ export function MapProvider({ children }) {
     } catch (err) {
       console.error('Nearby search failed:', err);
       setNearbyResults([]);
-      throw err;
+      setNearbyError(err.message || 'Nearby places are temporarily unavailable.');
+      return [];
     } finally {
       setIsSearchingNearby(false);
     }
   }, [center, mapInstance]);
+
+  const clearNearbyResults = useCallback(() => {
+    setNearbyResults([]);
+    setActiveCategory(null);
+    setNearbyError(null);
+  }, []);
 
   // Clear all active search / nearby / route states
   const clearSelection = useCallback(() => {
@@ -117,6 +192,12 @@ export function MapProvider({ children }) {
 
   const clearRoute = useCallback(() => {
     setRouteData(null);
+    setSelectedRouteId(null);
+  }, []);
+
+  const setActiveRoute = useCallback((routeId) => {
+    setSelectedRouteId(routeId);
+    setRouteData((current) => current ? { ...current, selectedRouteId: routeId } : current);
   }, []);
 
   const clearSearchResults = useCallback(() => {
@@ -135,7 +216,10 @@ export function MapProvider({ children }) {
         zoom,
         setZoom,
         activeLayer,
-        setActiveLayer,
+        setActiveLayer: (layerId) => {
+          if (TILE_LAYERS[layerId]?.available === false) return;
+          setActiveLayer(TILE_LAYERS[layerId] ? layerId : 'osm');
+        },
         tileConfig: TILE_LAYERS[activeLayer] || TILE_LAYERS.osm,
         selectedPlace,
         setSelectedPlace,
@@ -146,22 +230,33 @@ export function MapProvider({ children }) {
         nearbyResults,
         setNearbyResults,
         activeCategory,
+        nearbyError,
         isSearchingNearby,
         searchNearby,
+        clearNearbyResults,
         clearSearchResults,
         routeData,
-        setRouteData,
+        setRouteData: (data) => {
+          setRouteData(data);
+          setSelectedRouteId(data?.selectedRouteId || data?.routes?.[0]?.routeId || data?.routes?.[0]?.id || null);
+        },
+        selectedRouteId,
+        setActiveRoute,
         clearRoute,
         userLocation,
         currentLocation: userLocation, // Compatibility alias
         accuracy,
         isLocating,
         locationError,
+        permissionState,
         isTrackingLocation,
         locateUser,
         startLiveTracking,
         stopLiveTracking,
         flyToLocation,
+        isSidebarOpen,
+        setIsSidebarOpen,
+        toggleSidebar,
         toLatLng,
         toLeafletPoint,
         toGeoJSONPoint,

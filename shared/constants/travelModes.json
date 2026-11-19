@@ -1,0 +1,14 @@
+{
+  "supportedModes": ["car", "motorcycle", "bicycle", "pedestrian"],
+  "defaultMode": "car",
+  "modeAliases": {
+    "driving": "car",
+    "bike": "motorcycle",
+    "two_wheeler": "motorcycle",
+    "cycling": "bicycle",
+    "cycle": "bicycle",
+    "walk": "pedestrian",
+    "walking": "pedestrian",
+    "foot": "pedestrian"
+  }
+}

@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — Structured Logging Utility
+ * ChunkFlow AI — Structured Logging Utility
  * Member 3: Backend Integration & Microservices
  */
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, Heart, Briefcase, Plane, Trash2, Navigation, MapPin, Loader2 } from 'lucide-react';
+import { Bookmark, Heart, Briefcase, Plane, Trash2, Navigation, MapPin, Loader2, Plus } from 'lucide-react';
 import { savedPlaceService } from '../services/savedPlaceService.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useMap } from '../context/MapContext.jsx';
@@ -64,7 +64,7 @@ export default function SavedPlacesPage() {
       lat: Number(place.latitude),
       lon: Number(place.longitude),
       category: place.category,
-      address: place.address_json,
+      address: place.address,
     });
     navigate('/');
   };
@@ -75,27 +75,29 @@ export default function SavedPlacesPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="h-[calc(100vh-62px)] flex items-center justify-center p-4 bg-[#090c0f]">
-        <div className="w-full max-w-md p-8 rounded bg-[#11171b]/95 border border-[#29353a] shadow-float text-center font-mono">
-          <Bookmark className="w-10 h-10 mx-auto text-[#63e7ee] mb-4" />
-          <h2 className="font-condensed text-2xl font-bold tracking-wide text-[#edf3f1]">
-            SAVED PLACES & WAYPOINTS
+      <div className="h-[calc(100vh-64px)] flex items-center justify-center p-4 bg-[var(--background)]">
+        <div className="w-full max-w-md p-8 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)] text-center">
+          <span className="inline-grid place-items-center w-12 h-12 rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)] mb-4 mx-auto border border-[var(--outline)]/40">
+            <Bookmark className="w-6 h-6" />
+          </span>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--text)]">
+            Saved Places & Waypoints
           </h2>
-          <p className="text-xs text-[#8c9a9c] mt-2 mb-6 leading-relaxed">
-            Sign in to access your persistent road chunks, favorite Indian landmarks, and travel itineraries across sessions.
+          <p className="text-xs text-[var(--text-secondary)] mt-2 mb-6 leading-relaxed">
+            Sign in to access your bookmarked locations, favorite landmarks, and travel routes across all devices.
           </p>
           <div className="flex space-x-3">
             <button
               onClick={() => navigate('/login')}
-              className="flex-1 py-2.5 rounded font-mono text-xs font-bold uppercase tracking-wider text-[#071014] bg-[#63e7ee] hover:bg-[#7ef1f7] border border-[#63e7ee] shadow-[0_0_10px_rgba(99,231,238,0.25)] transition-all"
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[var(--primary)] hover:bg-[var(--primary-strong)] transition-all shadow-sm"
             >
-              SIGN IN
+              Sign In
             </button>
             <button
               onClick={() => navigate('/register')}
-              className="flex-1 py-2.5 rounded font-mono text-xs font-semibold uppercase tracking-wider text-[#edf3f1] bg-[#172125] border border-[#38474b] hover:border-[#63e7ee] transition-all"
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider text-[var(--text)] bg-[var(--surface-subtle)] border border-[var(--border)] hover:border-[var(--outline)] transition-all"
             >
-              REGISTER
+              Register
             </button>
           </div>
         </div>
@@ -104,31 +106,31 @@ export default function SavedPlacesPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-62px)] flex flex-col max-w-5xl mx-auto p-4 lg:p-8 overflow-y-auto">
+    <div className="h-[calc(100vh-64px)] flex flex-col max-w-5xl mx-auto p-4 lg:p-8 overflow-y-auto bg-[var(--background)] text-[var(--text)]">
       {/* Title */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <span className="font-mono text-[9px] text-[#63e7ee] tracking-[1.5px] uppercase">BOOKMARKED TELEMETRY</span>
-          <h1 className="font-condensed text-3xl font-bold tracking-wide text-[#edf3f1]">
-            SAVED PLACES & LISTS
+          <span className="text-[10px] text-[var(--primary)] font-bold tracking-wider uppercase">Bookmarked Locations</span>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[var(--text)] mt-0.5">
+            Saved Places & Lists
           </h1>
-          <p className="font-mono text-xs text-[#8c9a9c] mt-0.5">
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
             Manage your bookmarked locations and custom route collections
           </p>
         </div>
       </div>
 
       {/* List Filters */}
-      <div className="flex items-center space-x-2 overflow-x-auto pb-3 mb-4 select-none font-mono">
+      <div className="flex items-center space-x-2 overflow-x-auto pb-3 mb-6 select-none">
         <button
           onClick={() => setSelectedListId(null)}
-          className={`px-4 py-2 rounded text-xs uppercase tracking-wider transition-all border ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
             selectedListId === null
-              ? 'bg-[#63e7ee] text-[#071014] font-bold border-[#63e7ee] shadow-[0_0_10px_rgba(99,231,238,0.3)]'
-              : 'bg-[#11171b] text-[#8c9a9c] border-[#29353a] hover:border-[#63e7ee] hover:text-[#edf3f1]'
+              ? 'bg-[var(--primary)] text-white border-[var(--primary)] shadow-sm'
+              : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--outline)] hover:text-[var(--text)]'
           }`}
         >
-          ALL PLACES
+          All Places
         </button>
 
         {lists.map((l) => {
@@ -139,10 +141,10 @@ export default function SavedPlacesPage() {
             <button
               key={l.id}
               onClick={() => setSelectedListId(l.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded text-xs uppercase tracking-wider transition-all border ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all border ${
                 isSelected
-                  ? 'bg-[#63e7ee] text-[#071014] font-bold border-[#63e7ee] shadow-[0_0_10px_rgba(99,231,238,0.3)]'
-                  : 'bg-[#11171b] text-[#8c9a9c] border-[#29353a] hover:border-[#63e7ee] hover:text-[#edf3f1]'
+                  ? 'bg-[var(--primary)] text-white border-[var(--primary)] shadow-sm font-bold'
+                  : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--outline)] hover:text-[var(--text)]'
               }`}
             >
               <IconComp className="w-3.5 h-3.5" />
@@ -154,74 +156,75 @@ export default function SavedPlacesPage() {
 
       {/* Content State */}
       {loading ? (
-        <div className="flex-1 flex items-center justify-center p-12 font-mono text-[#63e7ee]">
+        <div className="flex-1 flex items-center justify-center p-12 text-[var(--primary)]">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          <span className="text-xs uppercase">LOADING SAVED LOCATIONS...</span>
+          <span className="text-xs font-semibold uppercase">Loading saved locations...</span>
         </div>
-      ) : places.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center rounded border border-[#29353a] bg-[#11171b]/60 font-mono">
-          <Bookmark className="w-10 h-10 text-[#586769] mb-3" />
-          <h3 className="text-sm font-bold text-[#edf3f1] uppercase">
-            NO SAVED PLACES YET
+      ) : (selectedListId ? places.filter((place) => (place.collectionName || 'Favorites') === lists.find((list) => list.id === selectedListId)?.name) : places).length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+          <Bookmark className="w-10 h-10 text-[var(--text-tertiary)] mb-3" />
+          <h3 className="text-base font-bold text-[var(--text)]">
+            No saved places yet
           </h3>
-          <p className="text-xs text-[#8c9a9c] mt-1 max-w-xs leading-relaxed">
-            Search for any road chunk, station, or landmark and click "Save" to build your telemetry index.
+          <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-xs leading-relaxed">
+            Search for any place, landmark, or coordinates on the map and tap "Save" to bookmark it.
           </p>
           <button
             onClick={() => navigate('/')}
-            className="mt-4 px-4 py-2 rounded bg-[#63e7ee] text-[#071014] text-xs font-bold uppercase tracking-wider hover:bg-[#7ef1f7] transition-all shadow-[0_0_10px_rgba(99,231,238,0.25)]"
+            className="mt-5 px-5 py-2.5 rounded-xl bg-[var(--primary)] text-white text-xs font-bold uppercase tracking-wider hover:bg-[var(--primary-strong)] transition-all shadow-sm"
           >
-            EXPLORE MAP
+            Explore Map
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {places.map((place) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-12">
+          {places.filter((place) => !selectedListId || (place.collectionName || 'Favorites') === lists.find((list) => list.id === selectedListId)?.name).map((place) => (
             <div
               key={place.id}
-              className="p-4 rounded bg-[#11171b] border border-[#29353a] hover:border-[#63e7ee]/60 transition-all flex flex-col justify-between font-mono"
+              className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--outline)] transition-all flex flex-col justify-between shadow-[var(--shadow-sm)]"
             >
               <div>
                 <div className="flex items-start justify-between">
-                  <h3 className="text-xs font-bold text-[#edf3f1] truncate pr-2">
+                  <h3 className="text-sm font-bold text-[var(--text)] truncate pr-2">
                     {place.name}
                   </h3>
                   <button
                     onClick={() => handleDelete(place.id)}
                     title="Remove place"
-                    className="text-[#8c9a9c] hover:text-[#ff5d61] transition-colors p-1"
+                    aria-label={`Remove ${place.name}`}
+                    className="text-[var(--text-secondary)] hover:text-[var(--red)] transition-colors p-1 rounded-lg hover:bg-[var(--surface-subtle)]"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
 
-                <p className="text-[10px] text-[#8c9a9c] line-clamp-2 mt-1 leading-relaxed">
+                <p className="text-xs text-[var(--text-secondary)] line-clamp-2 mt-1 leading-relaxed">
                   {place.display_name}
                 </p>
 
                 {place.notes && (
-                  <div className="mt-2.5 p-2 rounded bg-[#ffbf5c]/10 border border-[#ffbf5c]/30 text-[#ffbf5c] text-[10px] italic">
+                  <div className="mt-2.5 p-2 rounded-lg bg-[var(--primary-soft)] border border-[var(--outline)]/30 text-[var(--primary)] text-xs italic">
                     "{place.notes}"
                   </div>
                 )}
               </div>
 
               {/* Bottom Card Actions */}
-              <div className="mt-4 pt-3 border-t border-[#29353a] flex items-center justify-between">
+              <div className="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between">
                 <button
                   onClick={() => handleInspect(place)}
-                  className="flex items-center space-x-1.5 text-xs text-[#63e7ee] hover:underline uppercase"
+                  className="flex items-center space-x-1.5 text-xs font-bold text-[var(--primary)] hover:underline uppercase"
                 >
                   <MapPin className="w-3.5 h-3.5" />
-                  <span>VIEW ON MAP</span>
+                  <span>View on Map</span>
                 </button>
 
                 <button
                   onClick={() => handleDirections(place)}
-                  className="p-1.5 rounded bg-[#172125] border border-[#38474b] text-[#63e7ee] hover:border-[#63e7ee] hover:bg-[#63e7ee]/10 transition-colors"
-                  title="Get Directions"
+                  className="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold uppercase text-[var(--primary)] bg-[var(--primary-soft)] hover:bg-[var(--primary)] hover:text-white transition-all border border-[var(--outline)]/40"
                 >
                   <Navigation className="w-3.5 h-3.5" />
+                  <span>Route</span>
                 </button>
               </div>
             </div>

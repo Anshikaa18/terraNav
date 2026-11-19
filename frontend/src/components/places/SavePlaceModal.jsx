@@ -76,9 +76,9 @@ export default function SavePlaceModal({ place, isOpen, onClose, onSaved = null 
         category: place.category,
         latitude: place.lat,
         longitude: place.lon,
-        address: place.address,
+        address: place.address || place.display_name,
         notes,
-        list_id: selectedListId,
+        collectionName: lists.find((list) => String(list.id) === String(selectedListId))?.name || 'Favorites',
       });
 
       setSuccess(true);
@@ -98,30 +98,30 @@ export default function SavePlaceModal({ place, isOpen, onClose, onSaved = null 
 
   if (!isAuthenticated) {
     return (
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in select-none">
-        <div className="w-full max-w-sm rounded bg-[#11171b] p-6 shadow-float border border-[#29353a] text-center font-mono">
-          <Bookmark className="w-10 h-10 mx-auto text-[#63e7ee] mb-3" />
-          <h3 className="font-condensed text-xl font-bold tracking-wide text-[#edf3f1]">
-            SIGN IN TO SAVE PLACES
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in select-none">
+        <div className="w-full max-w-sm rounded-2xl bg-[var(--surface)] p-6 shadow-[var(--shadow-lg)] border border-[var(--border)] text-center">
+          <Bookmark className="w-10 h-10 mx-auto text-[var(--primary)] mb-3" />
+          <h3 className="text-xl font-bold tracking-tight text-[var(--text)]">
+            Sign In to Save Places
           </h3>
-          <p className="text-xs text-[#8c9a9c] mt-2 mb-5">
-            Create custom lists for your frequent road chunks, work locations, and waypoints.
+          <p className="text-xs text-[var(--text-secondary)] mt-2 mb-5">
+            Create custom lists for your frequent places, commute waypoints, and favorite landmarks.
           </p>
           <div className="flex space-x-2">
             <button
               onClick={onClose}
-              className="flex-1 py-2 rounded text-xs uppercase font-semibold text-[#8c9a9c] bg-[#172125] border border-[#38474b] hover:border-[#63e7ee]"
+              className="flex-1 py-2.5 rounded-xl text-xs uppercase font-semibold text-[var(--text-secondary)] bg-[var(--surface-subtle)] border border-[var(--border)] hover:border-[var(--outline)]"
             >
-              CANCEL
+              Cancel
             </button>
             <button
               onClick={() => {
                 onClose();
                 navigate('/login');
               }}
-              className="flex-1 py-2 rounded text-xs uppercase font-bold text-[#071014] bg-[#63e7ee] hover:bg-[#7ef1f7] border border-[#63e7ee] shadow-[0_0_10px_rgba(99,231,238,0.25)]"
+              className="flex-1 py-2.5 rounded-xl text-xs uppercase font-bold text-white bg-[var(--primary)] hover:bg-[var(--primary-strong)] shadow-sm"
             >
-              SIGN IN
+              Sign In
             </button>
           </div>
         </div>
@@ -130,33 +130,35 @@ export default function SavePlaceModal({ place, isOpen, onClose, onSaved = null 
   }
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in select-none">
-      <div className="w-full max-w-md rounded bg-[#11171b] p-6 shadow-float border border-[#29353a] font-mono">
-        <div className="flex items-center justify-between pb-3 border-b border-[#29353a]">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in select-none">
+      <div className="w-full max-w-md rounded-2xl bg-[var(--surface)] p-6 shadow-[var(--shadow-lg)] border border-[var(--border)] text-[var(--text)]">
+        <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
           <div className="flex items-center space-x-2">
-            <Bookmark className="w-4 h-4 text-[#63e7ee]" />
-            <h3 className="font-condensed text-xl font-bold tracking-wide text-[#edf3f1]">
-              SAVE TO TELEMETRY LISTS
+            <span className="p-1 rounded-lg bg-[var(--primary-soft)] text-[var(--primary)]">
+              <Bookmark className="w-4 h-4" />
+            </span>
+            <h3 className="text-lg font-bold tracking-tight text-[var(--text)]">
+              Save Location
             </h3>
           </div>
-          <button onClick={onClose} className="text-[#8c9a9c] hover:text-[#edf3f1]">
+          <button onClick={onClose} aria-label="Close" className="text-[var(--text-secondary)] hover:text-[var(--text)] p-1 rounded-lg">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="mt-4">
-          <p className="text-[10px] text-[#8c9a9c] uppercase tracking-wider">TARGET LOCATION:</p>
-          <p className="text-xs font-bold text-[#63e7ee] truncate mt-0.5">
+          <p className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">Location:</p>
+          <p className="text-sm font-bold text-[var(--primary)] truncate mt-0.5">
             {place.name}
           </p>
         </div>
 
         {/* List Picker */}
         <div className="mt-4">
-          <label className="text-[10px] uppercase tracking-wider text-[#8c9a9c] block mb-1.5">
-            SELECT A LIST
+          <label className="text-[10px] uppercase font-bold tracking-wider text-[var(--text-secondary)] block mb-1.5">
+            Select Collection
           </label>
-          <div className="space-y-1 max-h-36 overflow-y-auto">
+          <div className="grid gap-1.5 max-h-36 overflow-y-auto">
             {lists.map((l) => {
               const IconComp = ICON_MAP[l.icon] || Bookmark;
               const isSelected = selectedListId === l.id;
@@ -166,17 +168,17 @@ export default function SavePlaceModal({ place, isOpen, onClose, onSaved = null 
                   key={l.id}
                   onClick={() => setSelectedListId(l.id)}
                   type="button"
-                  className={`w-full flex items-center justify-between p-2 rounded text-xs uppercase tracking-wide transition-all border ${
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all border ${
                     isSelected
-                      ? 'bg-[#63e7ee]/10 text-[#63e7ee] border-[#63e7ee] font-bold'
-                      : 'bg-[#172125] text-[#8c9a9c] border-[#38474b] hover:border-[#63e7ee] hover:text-[#edf3f1]'
+                      ? 'bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--outline)] font-bold'
+                      : 'bg-transparent text-[var(--text-secondary)] border-transparent hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]'
                   }`}
                 >
                   <div className="flex items-center space-x-2">
-                    <IconComp className="w-3.5 h-3.5" />
+                    <IconComp className="w-4 h-4" />
                     <span>{l.name}</span>
                   </div>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-[#63e7ee]" />}
+                  {isSelected && <Check className="w-4 h-4 text-[var(--primary)]" />}
                 </button>
               );
             })}
@@ -187,32 +189,32 @@ export default function SavePlaceModal({ place, isOpen, onClose, onSaved = null 
             <button
               type="button"
               onClick={() => setIsCreatingList(true)}
-              className="mt-2 flex items-center space-x-1.5 text-[11px] text-[#63e7ee] hover:underline uppercase"
+              className="mt-2.5 flex items-center space-x-1.5 text-xs text-[var(--primary)] font-bold hover:underline"
             >
-              <Plus className="w-3 h-3" />
-              <span>CREATE NEW LIST</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Create New List</span>
             </button>
           ) : (
-            <form onSubmit={handleCreateNewList} className="mt-2 flex space-x-2">
+            <form onSubmit={handleCreateNewList} className="mt-2.5 flex space-x-2">
               <input
                 type="text"
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
                 placeholder="List name (e.g. Work spots)"
-                className="flex-1 px-2.5 py-1.5 rounded bg-[#172125] border border-[#38474b] text-xs text-[#edf3f1] focus:outline-none focus:border-[#63e7ee]"
+                className="flex-1 px-3 py-1.5 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] text-xs text-[var(--text)] focus:outline-none focus:border-[var(--outline)]"
               />
               <button
                 type="submit"
-                className="px-3 py-1.5 rounded bg-[#63e7ee] text-[#071014] text-xs font-bold uppercase tracking-wider"
+                className="px-3.5 py-1.5 rounded-xl bg-[var(--primary)] text-white text-xs font-bold uppercase tracking-wider"
               >
-                ADD
+                Add
               </button>
               <button
                 type="button"
                 onClick={() => setIsCreatingList(false)}
-                className="px-2 py-1.5 text-xs text-[#8c9a9c] hover:text-[#edf3f1]"
+                className="px-2 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text)]"
               >
-                CANCEL
+                Cancel
               </button>
             </form>
           )}
@@ -220,20 +222,20 @@ export default function SavePlaceModal({ place, isOpen, onClose, onSaved = null 
 
         {/* Optional Notes */}
         <div className="mt-4">
-          <label className="text-[10px] uppercase tracking-wider text-[#8c9a9c] block mb-1">
-            PERSONAL NOTE (OPTIONAL)
+          <label className="text-[10px] uppercase font-bold tracking-wider text-[var(--text-secondary)] block mb-1">
+            Personal Note (Optional)
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder="e.g. Landmark notes, fast parking, charging point..."
-            className="w-full px-2.5 py-1.5 rounded bg-[#172125] border border-[#38474b] text-xs text-[#edf3f1] placeholder-[#586769] focus:outline-none focus:border-[#63e7ee] resize-none"
+            placeholder="e.g. Parking instructions, gate number..."
+            className="w-full px-3 py-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] text-xs text-[var(--text)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--outline)] resize-none"
           />
         </div>
 
         {error && (
-          <div className="mt-2 text-xs text-[#ff5d61]">{error}</div>
+          <div className="mt-2 text-xs text-[var(--red)]">{error}</div>
         )}
 
         {/* Footer actions */}
@@ -241,24 +243,24 @@ export default function SavePlaceModal({ place, isOpen, onClose, onSaved = null 
           <button
             onClick={onClose}
             type="button"
-            className="px-3 py-1.5 rounded text-xs uppercase tracking-wider text-[#8c9a9c] bg-[#172125] border border-[#38474b] hover:border-[#63e7ee]"
+            className="px-4 py-2 rounded-xl text-xs uppercase tracking-wider text-[var(--text-secondary)] bg-[var(--surface-subtle)] border border-[var(--border)] hover:border-[var(--outline)] font-semibold"
           >
-            CANCEL
+            Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !selectedListId}
             type="button"
-            className="flex items-center space-x-1.5 px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider text-[#071014] bg-[#63e7ee] hover:bg-[#7ef1f7] border border-[#63e7ee] shadow-[0_0_10px_rgba(99,231,238,0.25)] disabled:opacity-50"
+            className="flex items-center space-x-1.5 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[var(--primary)] hover:bg-[var(--primary-strong)] disabled:opacity-50 shadow-sm"
           >
             {saving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : success ? (
-              <Check className="w-3.5 h-3.5" />
+              <Check className="w-4 h-4" />
             ) : (
-              <Bookmark className="w-3.5 h-3.5" />
+              <Bookmark className="w-4 h-4" />
             )}
-            <span>{success ? 'SAVED!' : 'SAVE LOCATION'}</span>
+            <span>{success ? 'Saved!' : 'Save Location'}</span>
           </button>
         </div>
       </div>

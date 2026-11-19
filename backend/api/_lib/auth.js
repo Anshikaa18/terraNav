@@ -1,13 +1,64 @@
 /**
- * TerraNav AI — JWT Authentication Middleware & Token Service
+ * ChunkFlow AI — JWT Authentication Middleware & Token Service
  * Member 3: Backend Integration & Microservices
  */
 
 const jwt = require('jsonwebtoken');
-const { UnauthorizedError, ForbiddenError } = require('./errors');
+const { UnauthorizedError } = require('./errors');
 const logger = require('./logging');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'terranav_default_secret_key_change_me_2026';
+const KNOWN_WEAK_SECRETS = new Set([
+  'terranav_default_secret_key_change_me_2026',
+  'terranav_ai_jwt_super_secret_key_2026_production_change_me',
+  'replace_with_a_secure_random_at_least_32_char_secret_key',
+  'secret',
+  'jwt_secret',
+  'changeme'
+]);
+
+function resolveJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const isProduction = nodeEnv === 'production';
+
+  if (isProduction) {
+    if (!secret || secret.length < 32 || KNOWN_WEAK_SECRETS.has(secret)) {
+      throw new Error(
+        'JWT_SECRET must be set to a strong unique value (>= 32 characters) in production.'
+      );
+    }
+    return secret;
+  }
+
+  if (secret) {
+    if (KNOWN_WEAK_SECRETS.has(secret)) {
+      if (nodeEnv !== 'test') {
+        throw new Error(
+          'JWT_SECRET uses a known weak placeholder secret. Generate a strong unique secret (>= 32 characters) in your .env file.'
+        );
+      }
+      logger.warn('JWT_SECRET uses a known placeholder value; replace it before production deployment.');
+    }
+    if (secret.length < 32 && nodeEnv !== 'test') {
+      throw new Error('JWT_SECRET must be at least 32 characters long.');
+    }
+    return secret;
+  }
+
+  if (nodeEnv === 'test') {
+    return 'terranav-test-jwt-secret-32chars-min';
+  }
+
+  throw new Error(
+    'JWT_SECRET is required. Copy backend/.env.example to backend/.env and set a strong secret.'
+  );
+}
+
+function assertProductionAuthConfig() {
+  resolveJwtSecret();
+}
+
+const JWT_SECRET = resolveJwtSecret();
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 /**
@@ -65,7 +116,7 @@ function requireAuth(req, res, next) {
 
 /**
  * Express Middleware: Optional authentication
- * Does not reject unauthenticated requests, but attaches req.user if token is valid.
+ * Allows no Authorization header, but rejects malformed or invalid bearer tokens.
  */
 function optionalAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -75,18 +126,16 @@ function optionalAuth(req, res, next) {
   }
 
   const parts = authHeader.split(' ');
-  if (parts.length === 2 && parts[0] === 'Bearer') {
-    try {
-      const decoded = verifyToken(parts[1]);
-      req.user = decoded;
-    } catch (err) {
-      // Ignore invalid token for optional auth, leave req.user = null
-      req.user = null;
-    }
-  } else {
-    req.user = null;
+  if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) {
+    return next(new UnauthorizedError('Invalid Authorization format. Expected "Authorization: Bearer <token>"'));
   }
-  return next();
+
+  try {
+    req.user = verifyToken(parts[1]);
+    return next();
+  } catch (err) {
+    return next(err);
+  }
 }
 
 module.exports = {
@@ -94,6 +143,8 @@ module.exports = {
   verifyToken,
   requireAuth,
   optionalAuth,
+  assertProductionAuthConfig,
+  resolveJwtSecret,
   JWT_SECRET,
   JWT_EXPIRES_IN
 };

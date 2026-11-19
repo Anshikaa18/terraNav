@@ -1,0 +1,42 @@
+{
+  "system_name": "TerraNav Dynamic Route Rationalization ML System",
+  "version": "1.0.0",
+  "environment": "production",
+  "routing": {
+    "min_speed_floor_kmh": 5.0,
+    "max_physical_speed_kmh": 130.0,
+    "rerouting_threshold_percent": 0.12,
+    "rerouting_min_time_saving_seconds": 90.0,
+    "rerouting_cooldown_seconds": 60.0,
+    "default_algorithm": "astar",
+    "policies": [
+      "shortest_distance",
+      "static_free_flow",
+      "baseline_traffic",
+      "dynamic_ml"
+    ]
+  },
+  "horizons": {
+    "trajectory_seconds": [5, 15, 30],
+    "segment_minutes": [5, 15, 30]
+  },
+  "data_paths": {
+    "trajectory_dataset": "data-set-for-ChunkFlow/Trajectorydatadumasroad.xlsx",
+    "bengaluru_traffic": "data-set-for-ChunkFlow/Banglore_traffic_Dataset.csv",
+    "chunkflow_before": "ML/before processing.csv",
+    "chunkflow_after": "ML/after processing.csv"
+  },
+  "model": {
+    "selected_architecture": "HistGradientBoostingRegressor",
+    "random_state": 42,
+    "clean_features_count": 17,
+    "forbidden_leakage_features": [
+      "x_LEAK_Road_Average_Speed",
+      "x_LEAK_Road_Traffic_Volume",
+      "x_LEAK_Incident_Reports",
+      "x_LEAK_Road_Roadwork_Activity_Yes",
+      "x_LEAK_Queue_per_Chunk_Length",
+      "x_LEAK_Volume_per_km_proxy_log"
+    ]
+  }
+}

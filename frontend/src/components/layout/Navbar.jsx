@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Compass, Navigation, Bookmark, History, Sun, Moon, LogIn, LogOut } from 'lucide-react';
+import { Compass, Navigation, Bookmark, History, Sun, Moon, LogIn, LogOut, Menu, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
+import { useMap } from '../../context/MapContext.jsx';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { isSidebarOpen, toggleSidebar } = useMap();
   const location = useLocation();
   const [clock, setClock] = useState('');
 
@@ -21,31 +23,38 @@ export default function Navbar() {
   }, []);
 
   const navItems = [
-    { label: 'Explore', path: '/', icon: Compass },
-    { label: 'Directions', path: '/directions', icon: Navigation },
-    { label: 'Saved', path: '/saved', icon: Bookmark },
-    { label: 'History', path: '/history', icon: History },
+    { label: 'EXPLORE', path: '/', icon: Compass },
+    { label: 'DIRECTIONS', path: '/directions', icon: Navigation },
+    { label: 'SAVED', path: '/saved', icon: Bookmark },
+    { label: 'HISTORY', path: '/history', icon: History },
   ];
 
   return (
-    <header className="h-[62px] w-full bg-[#0d1215]/95 backdrop-blur-md border-b border-[#29353a] px-4 md:px-6 flex items-center justify-between z-[400] relative select-none">
-      {/* Brand Logo & Eyebrow */}
-      <Link to="/" className="flex items-center gap-3 group">
-        <span className="text-[#63e7ee] text-2xl font-mono leading-none drop-shadow-[0_0_10px_#63e7ee]">
-          ◫
-        </span>
-        <div className="flex flex-col">
-          <b className="font-condensed text-xl font-bold tracking-[2px] text-[#63e7ee] leading-none">
-            TERRANAV
+    <header className="h-[64px] w-full bg-[var(--surface)] border-b border-[var(--border)] px-4 md:px-6 flex items-center justify-between z-[400] relative select-none transition-colors duration-200">
+      {/* Brand Logo & Hamburger */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={isSidebarOpen ? 'Collapse navigation sidebar' : 'Expand navigation sidebar'}
+          aria-expanded={isSidebarOpen}
+          aria-controls="navigation-sidebar mobile-navigation"
+          className="p-1.5 -ml-1 rounded-lg text-[var(--text)] hover:bg-[var(--surface-subtle)] active:scale-95 transition-all"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <Link to="/" className="flex flex-col group">
+          <b className="text-lg font-black tracking-tight text-[var(--text)] leading-none">
+            ChunkFlow
           </b>
-          <small className="font-mono text-[9px] tracking-[1.5px] text-[#8c9a9c] mt-0.5 uppercase block">
+          <small className="text-[9px] tracking-wider font-semibold text-[var(--text-secondary)] uppercase mt-0.5">
             DYNAMIC ROUTING LAB / INDIA
           </small>
-        </div>
-      </Link>
+        </Link>
+      </div>
 
       {/* Main Nav Links (Desktop) */}
-      <nav className="hidden md:flex items-center space-x-1.5 font-mono text-[11px] tracking-wider uppercase">
+      <nav className="hidden md:flex items-center gap-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -54,10 +63,10 @@ export default function Navbar() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded transition-all duration-200 ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${
                 isActive
-                  ? 'bg-[#63e7ee]/10 text-[#63e7ee] border border-[#63e7ee]/50 shadow-[0_0_10px_rgba(99,231,238,0.2)]'
-                  : 'text-[#8c9a9c] hover:text-[#edf3f1] hover:bg-[#162024] border border-transparent'
+                  ? 'bg-sky-50 dark:bg-sky-950/40 border border-sky-500 text-sky-600 dark:text-sky-400 shadow-xs'
+                  : 'text-[var(--text)] hover:bg-[var(--surface-subtle)]'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -70,49 +79,49 @@ export default function Navbar() {
       {/* Right Telemetry & Actions */}
       <div className="flex items-center gap-3">
         {/* Live Telemetry Indicator */}
-        <div className="hidden lg:flex items-center gap-2 text-[#adb9b8] font-mono text-[11px] bg-[#11171b] border border-[#29353a] px-3 py-1 rounded">
-          <span className="pulse" aria-hidden="true"></span>
-          <span className="tracking-wider">LIVE TELEMETRY</span>
-          <span className="text-[#586769]">•</span>
-          <span className="text-[#63e7ee] font-semibold">{clock || '--:--:--'}</span>
+        <div className="hidden lg:flex items-center gap-2 text-xs font-medium bg-[var(--surface)] border border-[var(--border)] px-3.5 py-1.5 rounded-full shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="font-bold text-[10px] tracking-wider text-[var(--text)]">LIVE TELEMETRY</span>
+          <span className="text-[var(--border)]">|</span>
+          <span className="font-mono text-xs font-semibold text-[var(--text)]">{clock || '13:35:43'}</span>
         </div>
 
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          title="Toggle light/dark theme"
-          className="p-2 rounded bg-[#172125] border border-[#38474b] text-[#8c9a9c] hover:text-[#63e7ee] hover:border-[#63e7ee] transition-all"
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          className="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] hover:text-sky-600 hover:border-sky-300 transition-all shadow-xs"
         >
-          {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-[#ffbf5c]" /> : <Moon className="w-3.5 h-3.5" />}
+          {theme === 'dark' ? <Sun className="w-4 h-4 text-[var(--yellow)]" /> : <Moon className="w-4 h-4" />}
         </button>
 
         {/* User Auth Section */}
         {isAuthenticated ? (
-          <div className="flex items-center space-x-2 pl-2 border-l border-[#29353a]">
+          <div className="flex items-center gap-2 pl-1 border-l border-[var(--border)]">
             <Link
               to="/settings"
-              className="flex items-center space-x-2 px-2.5 py-1.5 rounded bg-[#172125] border border-[#38474b] text-[11px] font-mono text-[#edf3f1] hover:border-[#63e7ee] transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-subtle)] border border-[var(--border)] text-xs font-semibold text-[var(--text)] hover:border-sky-300 transition-colors"
             >
-              <div className="w-4 h-4 rounded-full bg-[#63e7ee] text-[#090c0f] flex items-center justify-center text-[9px] font-bold">
+              <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
                 {user?.name?.charAt(0).toUpperCase() || 'U'}
               </div>
               <span className="hidden sm:inline-block max-w-[90px] truncate">{user?.name}</span>
             </Link>
             <button
               onClick={logout}
-              title="Sign Out"
-              className="p-1.5 rounded bg-[#172125] border border-[#38474b] text-[#8c9a9c] hover:text-[#ff5d61] hover:border-[#ff5d61] transition-colors"
+              title="Sign out"
+              className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--red)] transition-colors"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         ) : (
           <Link
             to="/login"
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded text-[11px] font-mono font-bold tracking-wider uppercase text-[#071014] bg-[#63e7ee] hover:bg-[#7ef1f7] border border-[#63e7ee] transition-all shadow-[0_0_10px_rgba(99,231,238,0.25)]"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-all"
           >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Sign In</span>
+            <User className="w-3.5 h-3.5" />
+            <span>SIGN IN</span>
           </Link>
         )}
       </div>

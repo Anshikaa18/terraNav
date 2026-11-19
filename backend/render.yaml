@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: terranav-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && pip install -r requirements.txt
+    startCommand: node api/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        sync: false
+      - key: TOMTOM_API_KEY
+        sync: false
+      - key: OSRM_BASE_URL
+        value: http://router.project-osrm.org
+      - key: NOMINATIM_BASE_URL
+        value: https://nominatim.openstreetmap.org
+      - key: OVERPASS_BASE_URL
+        value: https://overpass-api.de/api/interpreter

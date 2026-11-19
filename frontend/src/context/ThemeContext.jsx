@@ -6,11 +6,12 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('terranav_theme');
     if (saved) return saved;
-    return 'dark';
+    return 'light';
   });
 
   useEffect(() => {
     const root = document.documentElement;
+    root.dataset.theme = theme;
     if (theme === 'dark') {
       root.classList.add('dark');
     } else {

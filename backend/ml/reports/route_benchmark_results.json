@@ -1,0 +1,503 @@
+{
+  "benchmark_timestamp": "2026-10-23T22:13:09.995914",
+  "aggregate_policy_metrics": {
+    "shortest_distance": {
+      "mean_travel_time_sec": 1885.0,
+      "mean_travel_time_min": 31.42,
+      "mean_distance_km": 15.93,
+      "mean_route_latency_ms": 0.144,
+      "p95_route_latency_ms": 0.429
+    },
+    "static_free_flow": {
+      "mean_travel_time_sec": 1917.4,
+      "mean_travel_time_min": 31.96,
+      "mean_distance_km": 16.19,
+      "mean_route_latency_ms": 0.079,
+      "p95_route_latency_ms": 0.108
+    },
+    "baseline_traffic": {
+      "mean_travel_time_sec": 1885.0,
+      "mean_travel_time_min": 31.42,
+      "mean_distance_km": 15.93,
+      "mean_route_latency_ms": 0.085,
+      "p95_route_latency_ms": 0.103
+    },
+    "dynamic_ml": {
+      "mean_travel_time_sec": 1554.0,
+      "mean_travel_time_min": 25.9,
+      "mean_distance_km": 17.18,
+      "mean_route_latency_ms": 0.079,
+      "p95_route_latency_ms": 0.103
+    }
+  },
+  "travel_time_savings": {
+    "ml_savings_vs_shortest_distance_pct": 17.56,
+    "ml_savings_vs_shortest_distance_sec": 331.0,
+    "ml_savings_vs_static_free_flow_pct": 18.95,
+    "ml_savings_vs_static_free_flow_sec": 363.4
+  },
+  "od_pair_evaluations": [
+    {
+      "origin": "ANIL_KUMBLE",
+      "destination": "E_CITY",
+      "shortest_distance": {
+        "distance_km": 16.88,
+        "actual_travel_time_min": 35.99,
+        "actual_travel_time_sec": 2159.3,
+        "path": "ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 6,
+        "route_latency_ms": 0.722
+      },
+      "static_free_flow": {
+        "distance_km": 16.88,
+        "actual_travel_time_min": 35.99,
+        "actual_travel_time_sec": 2159.3,
+        "path": "ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 6,
+        "route_latency_ms": 0.119
+      },
+      "baseline_traffic": {
+        "distance_km": 16.88,
+        "actual_travel_time_min": 35.99,
+        "actual_travel_time_sec": 2159.3,
+        "path": "ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 6,
+        "route_latency_ms": 0.108
+      },
+      "dynamic_ml": {
+        "distance_km": 19.76,
+        "actual_travel_time_min": 28.59,
+        "actual_travel_time_sec": 1715.7,
+        "path": "ANIL_KUMBLE -> SOUTH_END -> JAYANAGAR_4TH -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 6,
+        "route_latency_ms": 0.107
+      }
+    },
+    {
+      "origin": "HEBBAL",
+      "destination": "SILK_BOARD",
+      "shortest_distance": {
+        "distance_km": 15.37,
+        "actual_travel_time_min": 35.89,
+        "actual_travel_time_sec": 2153.5,
+        "path": "HEBBAL -> BALLARI_RD -> ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD",
+        "nodes_count": 6,
+        "route_latency_ms": 0.095
+      },
+      "static_free_flow": {
+        "distance_km": 15.37,
+        "actual_travel_time_min": 35.89,
+        "actual_travel_time_sec": 2153.5,
+        "path": "HEBBAL -> BALLARI_RD -> ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD",
+        "nodes_count": 6,
+        "route_latency_ms": 0.084
+      },
+      "baseline_traffic": {
+        "distance_km": 15.37,
+        "actual_travel_time_min": 35.89,
+        "actual_travel_time_sec": 2153.5,
+        "path": "HEBBAL -> BALLARI_RD -> ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD",
+        "nodes_count": 6,
+        "route_latency_ms": 0.086
+      },
+      "dynamic_ml": {
+        "distance_km": 18.24,
+        "actual_travel_time_min": 28.5,
+        "actual_travel_time_sec": 1709.9,
+        "path": "HEBBAL -> BALLARI_RD -> ANIL_KUMBLE -> SOUTH_END -> JAYANAGAR_4TH -> SILK_BOARD",
+        "nodes_count": 6,
+        "route_latency_ms": 0.088
+      }
+    },
+    {
+      "origin": "YESHWANTHPUR",
+      "destination": "ITPL",
+      "shortest_distance": {
+        "distance_km": 23.53,
+        "actual_travel_time_min": 39.52,
+        "actual_travel_time_sec": 2371.5,
+        "path": "YESHWANTHPUR -> ANIL_KUMBLE -> TRINITY -> 100_FT_RD -> MARATHAHALLI -> ITPL",
+        "nodes_count": 6,
+        "route_latency_ms": 0.095
+      },
+      "static_free_flow": {
+        "distance_km": 24.47,
+        "actual_travel_time_min": 29.45,
+        "actual_travel_time_sec": 1766.9,
+        "path": "YESHWANTHPUR -> HEBBAL -> MARATHAHALLI -> ITPL",
+        "nodes_count": 4,
+        "route_latency_ms": 0.075
+      },
+      "baseline_traffic": {
+        "distance_km": 23.53,
+        "actual_travel_time_min": 39.52,
+        "actual_travel_time_sec": 2371.5,
+        "path": "YESHWANTHPUR -> ANIL_KUMBLE -> TRINITY -> 100_FT_RD -> MARATHAHALLI -> ITPL",
+        "nodes_count": 6,
+        "route_latency_ms": 0.096
+      },
+      "dynamic_ml": {
+        "distance_km": 24.47,
+        "actual_travel_time_min": 29.45,
+        "actual_travel_time_sec": 1766.9,
+        "path": "YESHWANTHPUR -> HEBBAL -> MARATHAHALLI -> ITPL",
+        "nodes_count": 4,
+        "route_latency_ms": 0.076
+      }
+    },
+    {
+      "origin": "100_FT_RD",
+      "destination": "E_CITY",
+      "shortest_distance": {
+        "distance_km": 15.04,
+        "actual_travel_time_min": 30.86,
+        "actual_travel_time_sec": 1851.5,
+        "path": "100_FT_RD -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 5,
+        "route_latency_ms": 0.189
+      },
+      "static_free_flow": {
+        "distance_km": 15.04,
+        "actual_travel_time_min": 30.86,
+        "actual_travel_time_sec": 1851.5,
+        "path": "100_FT_RD -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 5,
+        "route_latency_ms": 0.095
+      },
+      "baseline_traffic": {
+        "distance_km": 15.04,
+        "actual_travel_time_min": 30.86,
+        "actual_travel_time_sec": 1851.5,
+        "path": "100_FT_RD -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 5,
+        "route_latency_ms": 0.09
+      },
+      "dynamic_ml": {
+        "distance_km": 15.04,
+        "actual_travel_time_min": 30.86,
+        "actual_travel_time_sec": 1851.5,
+        "path": "100_FT_RD -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 5,
+        "route_latency_ms": 0.089
+      }
+    },
+    {
+      "origin": "SOUTH_END",
+      "destination": "HEBBAL",
+      "shortest_distance": {
+        "distance_km": 13.38,
+        "actual_travel_time_min": 20.06,
+        "actual_travel_time_sec": 1203.8,
+        "path": "SOUTH_END -> ANIL_KUMBLE -> BALLARI_RD -> HEBBAL",
+        "nodes_count": 4,
+        "route_latency_ms": 0.075
+      },
+      "static_free_flow": {
+        "distance_km": 13.38,
+        "actual_travel_time_min": 20.06,
+        "actual_travel_time_sec": 1203.8,
+        "path": "SOUTH_END -> ANIL_KUMBLE -> BALLARI_RD -> HEBBAL",
+        "nodes_count": 4,
+        "route_latency_ms": 0.071
+      },
+      "baseline_traffic": {
+        "distance_km": 13.38,
+        "actual_travel_time_min": 20.06,
+        "actual_travel_time_sec": 1203.8,
+        "path": "SOUTH_END -> ANIL_KUMBLE -> BALLARI_RD -> HEBBAL",
+        "nodes_count": 4,
+        "route_latency_ms": 0.089
+      },
+      "dynamic_ml": {
+        "distance_km": 13.38,
+        "actual_travel_time_min": 20.06,
+        "actual_travel_time_sec": 1203.8,
+        "path": "SOUTH_END -> ANIL_KUMBLE -> BALLARI_RD -> HEBBAL",
+        "nodes_count": 4,
+        "route_latency_ms": 0.084
+      }
+    },
+    {
+      "origin": "TUMKUR_RD",
+      "destination": "MARATHAHALLI",
+      "shortest_distance": {
+        "distance_km": 22.68,
+        "actual_travel_time_min": 37.85,
+        "actual_travel_time_sec": 2271.3,
+        "path": "TUMKUR_RD -> YESHWANTHPUR -> ANIL_KUMBLE -> TRINITY -> 100_FT_RD -> MARATHAHALLI",
+        "nodes_count": 6,
+        "route_latency_ms": 0.085
+      },
+      "static_free_flow": {
+        "distance_km": 23.62,
+        "actual_travel_time_min": 27.78,
+        "actual_travel_time_sec": 1666.7,
+        "path": "TUMKUR_RD -> YESHWANTHPUR -> HEBBAL -> MARATHAHALLI",
+        "nodes_count": 4,
+        "route_latency_ms": 0.067
+      },
+      "baseline_traffic": {
+        "distance_km": 22.68,
+        "actual_travel_time_min": 37.85,
+        "actual_travel_time_sec": 2271.3,
+        "path": "TUMKUR_RD -> YESHWANTHPUR -> ANIL_KUMBLE -> TRINITY -> 100_FT_RD -> MARATHAHALLI",
+        "nodes_count": 6,
+        "route_latency_ms": 0.089
+      },
+      "dynamic_ml": {
+        "distance_km": 23.62,
+        "actual_travel_time_min": 27.78,
+        "actual_travel_time_sec": 1666.7,
+        "path": "TUMKUR_RD -> YESHWANTHPUR -> HEBBAL -> MARATHAHALLI",
+        "nodes_count": 4,
+        "route_latency_ms": 0.065
+      }
+    },
+    {
+      "origin": "SONY_WORLD",
+      "destination": "BALLARI_RD",
+      "shortest_distance": {
+        "distance_km": 10.33,
+        "actual_travel_time_min": 18.73,
+        "actual_travel_time_sec": 1124.0,
+        "path": "SONY_WORLD -> TRINITY -> ANIL_KUMBLE -> BALLARI_RD",
+        "nodes_count": 4,
+        "route_latency_ms": 0.074
+      },
+      "static_free_flow": {
+        "distance_km": 10.33,
+        "actual_travel_time_min": 18.73,
+        "actual_travel_time_sec": 1124.0,
+        "path": "SONY_WORLD -> TRINITY -> ANIL_KUMBLE -> BALLARI_RD",
+        "nodes_count": 4,
+        "route_latency_ms": 0.068
+      },
+      "baseline_traffic": {
+        "distance_km": 10.33,
+        "actual_travel_time_min": 18.73,
+        "actual_travel_time_sec": 1124.0,
+        "path": "SONY_WORLD -> TRINITY -> ANIL_KUMBLE -> BALLARI_RD",
+        "nodes_count": 4,
+        "route_latency_ms": 0.075
+      },
+      "dynamic_ml": {
+        "distance_km": 10.33,
+        "actual_travel_time_min": 18.73,
+        "actual_travel_time_sec": 1124.0,
+        "path": "SONY_WORLD -> TRINITY -> ANIL_KUMBLE -> BALLARI_RD",
+        "nodes_count": 4,
+        "route_latency_ms": 0.068
+      }
+    },
+    {
+      "origin": "ITPL",
+      "destination": "SOUTH_END",
+      "shortest_distance": {
+        "distance_km": 19.19,
+        "actual_travel_time_min": 45.28,
+        "actual_travel_time_sec": 2716.7,
+        "path": "ITPL -> MARATHAHALLI -> SILK_BOARD -> JAYANAGAR_4TH -> SOUTH_END",
+        "nodes_count": 5,
+        "route_latency_ms": 0.08
+      },
+      "static_free_flow": {
+        "distance_km": 19.19,
+        "actual_travel_time_min": 45.28,
+        "actual_travel_time_sec": 2716.7,
+        "path": "ITPL -> MARATHAHALLI -> SILK_BOARD -> JAYANAGAR_4TH -> SOUTH_END",
+        "nodes_count": 5,
+        "route_latency_ms": 0.078
+      },
+      "baseline_traffic": {
+        "distance_km": 19.19,
+        "actual_travel_time_min": 45.28,
+        "actual_travel_time_sec": 2716.7,
+        "path": "ITPL -> MARATHAHALLI -> SILK_BOARD -> JAYANAGAR_4TH -> SOUTH_END",
+        "nodes_count": 5,
+        "route_latency_ms": 0.09
+      },
+      "dynamic_ml": {
+        "distance_km": 20.33,
+        "actual_travel_time_min": 30.44,
+        "actual_travel_time_sec": 1826.6,
+        "path": "ITPL -> MARATHAHALLI -> 100_FT_RD -> SONY_WORLD -> SOUTH_END",
+        "nodes_count": 5,
+        "route_latency_ms": 0.072
+      }
+    },
+    {
+      "origin": "CMH_RD",
+      "destination": "YESHWANTHPUR",
+      "shortest_distance": {
+        "distance_km": 11.77,
+        "actual_travel_time_min": 23.78,
+        "actual_travel_time_sec": 1426.9,
+        "path": "CMH_RD -> TRINITY -> ANIL_KUMBLE -> YESHWANTHPUR",
+        "nodes_count": 4,
+        "route_latency_ms": 0.079
+      },
+      "static_free_flow": {
+        "distance_km": 12.28,
+        "actual_travel_time_min": 22.15,
+        "actual_travel_time_sec": 1329.1,
+        "path": "CMH_RD -> TRINITY -> ANIL_KUMBLE -> BALLARI_RD -> YESHWANTHPUR",
+        "nodes_count": 5,
+        "route_latency_ms": 0.066
+      },
+      "baseline_traffic": {
+        "distance_km": 11.77,
+        "actual_travel_time_min": 23.78,
+        "actual_travel_time_sec": 1426.9,
+        "path": "CMH_RD -> TRINITY -> ANIL_KUMBLE -> YESHWANTHPUR",
+        "nodes_count": 4,
+        "route_latency_ms": 0.074
+      },
+      "dynamic_ml": {
+        "distance_km": 12.28,
+        "actual_travel_time_min": 22.15,
+        "actual_travel_time_sec": 1329.1,
+        "path": "CMH_RD -> TRINITY -> ANIL_KUMBLE -> BALLARI_RD -> YESHWANTHPUR",
+        "nodes_count": 5,
+        "route_latency_ms": 0.074
+      }
+    },
+    {
+      "origin": "HOSUR_RD",
+      "destination": "ANIL_KUMBLE",
+      "shortest_distance": {
+        "distance_km": 10.93,
+        "actual_travel_time_min": 30.49,
+        "actual_travel_time_sec": 1829.5,
+        "path": "HOSUR_RD -> SILK_BOARD -> SONY_WORLD -> TRINITY -> ANIL_KUMBLE",
+        "nodes_count": 5,
+        "route_latency_ms": 0.071
+      },
+      "static_free_flow": {
+        "distance_km": 10.93,
+        "actual_travel_time_min": 30.49,
+        "actual_travel_time_sec": 1829.5,
+        "path": "HOSUR_RD -> SILK_BOARD -> SONY_WORLD -> TRINITY -> ANIL_KUMBLE",
+        "nodes_count": 5,
+        "route_latency_ms": 0.065
+      },
+      "baseline_traffic": {
+        "distance_km": 10.93,
+        "actual_travel_time_min": 30.49,
+        "actual_travel_time_sec": 1829.5,
+        "path": "HOSUR_RD -> SILK_BOARD -> SONY_WORLD -> TRINITY -> ANIL_KUMBLE",
+        "nodes_count": 5,
+        "route_latency_ms": 0.068
+      },
+      "dynamic_ml": {
+        "distance_km": 13.8,
+        "actual_travel_time_min": 23.1,
+        "actual_travel_time_sec": 1385.9,
+        "path": "HOSUR_RD -> SILK_BOARD -> JAYANAGAR_4TH -> SOUTH_END -> ANIL_KUMBLE",
+        "nodes_count": 5,
+        "route_latency_ms": 0.06
+      }
+    },
+    {
+      "origin": "MARATHAHALLI",
+      "destination": "SONY_WORLD",
+      "shortest_distance": {
+        "distance_km": 10.74,
+        "actual_travel_time_min": 15.86,
+        "actual_travel_time_sec": 951.4,
+        "path": "MARATHAHALLI -> 100_FT_RD -> SONY_WORLD",
+        "nodes_count": 3,
+        "route_latency_ms": 0.056
+      },
+      "static_free_flow": {
+        "distance_km": 11.4,
+        "actual_travel_time_min": 44.13,
+        "actual_travel_time_sec": 2647.6,
+        "path": "MARATHAHALLI -> SILK_BOARD -> SONY_WORLD",
+        "nodes_count": 3,
+        "route_latency_ms": 0.059
+      },
+      "baseline_traffic": {
+        "distance_km": 10.74,
+        "actual_travel_time_min": 15.86,
+        "actual_travel_time_sec": 951.4,
+        "path": "MARATHAHALLI -> 100_FT_RD -> SONY_WORLD",
+        "nodes_count": 3,
+        "route_latency_ms": 0.058
+      },
+      "dynamic_ml": {
+        "distance_km": 10.74,
+        "actual_travel_time_min": 15.86,
+        "actual_travel_time_sec": 951.4,
+        "path": "MARATHAHALLI -> 100_FT_RD -> SONY_WORLD",
+        "nodes_count": 3,
+        "route_latency_ms": 0.062
+      }
+    },
+    {
+      "origin": "BALLARI_RD",
+      "destination": "E_CITY",
+      "shortest_distance": {
+        "distance_km": 21.33,
+        "actual_travel_time_min": 42.67,
+        "actual_travel_time_sec": 2560.1,
+        "path": "BALLARI_RD -> ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 7,
+        "route_latency_ms": 0.111
+      },
+      "static_free_flow": {
+        "distance_km": 21.33,
+        "actual_travel_time_min": 42.67,
+        "actual_travel_time_sec": 2560.1,
+        "path": "BALLARI_RD -> ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 7,
+        "route_latency_ms": 0.099
+      },
+      "baseline_traffic": {
+        "distance_km": 21.33,
+        "actual_travel_time_min": 42.67,
+        "actual_travel_time_sec": 2560.1,
+        "path": "BALLARI_RD -> ANIL_KUMBLE -> TRINITY -> SONY_WORLD -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 7,
+        "route_latency_ms": 0.099
+      },
+      "dynamic_ml": {
+        "distance_km": 24.21,
+        "actual_travel_time_min": 35.27,
+        "actual_travel_time_sec": 2116.5,
+        "path": "BALLARI_RD -> ANIL_KUMBLE -> SOUTH_END -> JAYANAGAR_4TH -> SILK_BOARD -> HOSUR_RD -> E_CITY",
+        "nodes_count": 7,
+        "route_latency_ms": 0.1
+      }
+    }
+  ],
+  "reroute_simulation_events": [
+    {
+      "timestamp": 240.0,
+      "decision": false,
+      "reason": "OPTIMAL: Current route remains the fastest path."
+    },
+    {
+      "timestamp": 600.0,
+      "decision": true,
+      "reason": "MANDATORY: Ahead road segment is impassable or closed.",
+      "new_path": [
+        "ANIL_KUMBLE",
+        "TRINITY",
+        "SONY_WORLD",
+        "SILK_BOARD",
+        "HOSUR_RD",
+        "E_CITY"
+      ]
+    },
+    {
+      "timestamp": 635.0,
+      "decision": false,
+      "reason": "COOLDOWN_ACTIVE: Only 35.0s since last reroute (min 60.0s)."
+    },
+    {
+      "timestamp": 750.0,
+      "decision": false,
+      "reason": "OPTIMAL: Current route remains the fastest path."
+    }
+  ]
+}

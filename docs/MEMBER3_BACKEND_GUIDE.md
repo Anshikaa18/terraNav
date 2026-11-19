@@ -1,13 +1,13 @@
-# TerraNav AI — Member 3 Complete Backend & Learning Guide
+# ChunkFlow AI — Member 3 Complete Backend & Learning Guide
 
 **Role:** Backend Integration, Microservices & Data Layer Architect  
-**Author:** TerraNav AI Engineering  
+**Author:** ChunkFlow AI Engineering  
 **System:** Node.js, Express.js, MySQL (XAMPP), JWT, ML & Routing Adapters
 
 ---
 
 ## 1. What Member 3 Does
-Member 3 builds and owns the **central integration bridge** of the TerraNav AI ecosystem. While Member 1 develops ML traffic prediction models, Member 2 builds the graph routing algorithms, and Member 4 creates the final React map frontend, **Member 3 connects all these components into a reliable, secure, high-performance REST API gateway backed by MySQL**.
+Member 3 builds and owns the **central integration bridge** of the ChunkFlow AI ecosystem. While Member 1 develops ML traffic prediction models, Member 2 builds the graph routing algorithms, and Member 4 creates the final React map frontend, **Member 3 connects all these components into a reliable, secure, high-performance REST API gateway backed by MySQL**.
 
 ---
 

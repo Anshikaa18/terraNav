@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — Incidents Controller
+ * ChunkFlow AI — Incidents Controller
  * Member 3: Backend Integration & Microservices
  */
 
@@ -39,7 +39,7 @@ async function getById(req, res, next) {
 async function updateStatus(req, res, next) {
   try {
     const { status } = req.body;
-    const result = await incidentService.updateIncidentStatus(req.params.id, status);
+    const result = await incidentService.updateIncidentStatus(req.params.id, status, req.user);
     return sendSuccess(res, result, 'Incident status updated', 200);
   } catch (err) {
     return next(err);
@@ -48,7 +48,7 @@ async function updateStatus(req, res, next) {
 
 async function remove(req, res, next) {
   try {
-    const result = await incidentService.deleteIncident(req.params.id);
+    const result = await incidentService.deleteIncident(req.params.id, req.user);
     return sendSuccess(res, result, 'Incident deleted successfully', 200);
   } catch (err) {
     return next(err);

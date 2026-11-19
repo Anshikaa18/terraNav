@@ -1,4 +1,5 @@
 import api from './api.js';
+import { getStoredToken, setStoredToken, clearStoredToken } from './tokenStorage.js';
 
 export const authService = {
   async register(nameOrUsername, email, password) {
@@ -7,8 +8,7 @@ export const authService = {
     const payload = res.data || res;
     const token = payload.token;
     if (token) {
-      localStorage.setItem('terranav_token', token);
-      localStorage.setItem('terranav_jwt_token', token);
+      setStoredToken(token);
     }
     return payload;
   },
@@ -18,14 +18,13 @@ export const authService = {
     const payload = res.data || res;
     const token = payload.token;
     if (token) {
-      localStorage.setItem('terranav_token', token);
-      localStorage.setItem('terranav_jwt_token', token);
+      setStoredToken(token);
     }
     return payload;
   },
 
   async getMe() {
-    const token = localStorage.getItem('terranav_jwt_token') || localStorage.getItem('terranav_token');
+    const token = getStoredToken();
     if (!token) {
       return null;
     }
@@ -34,20 +33,14 @@ export const authService = {
       const payload = res.data || res;
       return payload.user || payload;
     } catch (err) {
-      if (err.response?.status === 401) {
-        localStorage.removeItem('terranav_token');
-        localStorage.removeItem('terranav_jwt_token');
+      if (err.response?.status === 401 || err.statusCode === 401) {
+        clearStoredToken();
       }
       return null;
     }
   },
 
   async logout() {
-    try {
-      localStorage.removeItem('terranav_token');
-      localStorage.removeItem('terranav_jwt_token');
-    } catch {
-      // Ignore errors on logout
-    }
+    clearStoredToken();
   },
 };

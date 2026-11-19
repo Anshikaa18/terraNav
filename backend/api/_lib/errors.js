@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — Centralized Error Handling & Response Envelope
+ * ChunkFlow AI — Centralized Error Handling & Response Envelope
  * Member 3: Backend Integration & Microservices
  */
 

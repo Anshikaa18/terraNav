@@ -1,93 +1,106 @@
 import api from './api.js';
 import { toLatLng, toLeafletPoint } from '../utils/coordinates.js';
+import { normalizeTrafficClass } from '../utils/traffic.js';
+import { formatDistance, formatDuration } from '../utils/geo.js';
+import { normalizeTravelMode } from '../utils/travelMode.js';
+export { normalizeTravelMode } from '../utils/travelMode.js';
+
+export const distanceText = (meters) => {
+  const value = Number(meters);
+  if (!Number.isFinite(value) || value < 0) return 'Distance unavailable';
+  return formatDistance(value / 1000) || 'Distance unavailable';
+};
+
+function stepDistanceMeters(step) {
+  if (step.distanceMeters != null) return Number(step.distanceMeters);
+  if (typeof step.distance === 'number') return step.distance;
+  if (typeof step.distance !== 'string') return null;
+  const match = step.distance.trim().match(/^([\d,.]+)\s*(km|kilometers?|m|meters?)?$/i);
+  if (!match) return null;
+  const amount = Number(match[1].replace(/,/g, ''));
+  return Number.isFinite(amount) ? amount * (/^km|^kilometer/i.test(match[2] || '') ? 1000 : 1) : null;
+}
+
+const normalizeCoordinates = (geometry) => (Array.isArray(geometry) ? geometry.map(toLeafletPoint).filter(Boolean) : []);
+
+function normalizeSegment(segment, index) {
+  const valueType = segment.valueType || segment.sourceType || (segment.predictedSpeedKmh != null ? 'predicted' : segment.observedSpeedKmh != null ? 'observed' : 'unavailable');
+  return {
+    ...segment,
+    segmentId: segment.segmentId || segment.id || `segment-${index}`,
+    coordinates: normalizeCoordinates(segment.coordinates || segment.geometry?.coordinates || segment.shape),
+    valueType,
+    stale: Boolean(segment.stale || segment.isStale || valueType === 'unavailable'),
+    trafficClass: normalizeTrafficClass(segment.trafficClass || segment.congestionLevel, {
+      stale: Boolean(segment.stale || segment.isStale),
+      valueType: valueType === 'observed' ? 'observed' : 'unavailable'
+    }),
+  };
+}
+
+function normalizeRoute(route, index, topLevelSegments, summary) {
+  const segments = (route.segments || route.chunks || topLevelSegments || []).map(normalizeSegment).filter((segment) => segment.coordinates.length >= 2);
+  const coordinates = normalizeCoordinates(route.coordinates || route.geometry?.coordinates || route.shape);
+  const geometry = coordinates.length >= 2 ? coordinates : segments.flatMap((segment) => segment.coordinates);
+  const metrics = route.metrics || (route.summary && typeof route.summary === 'object' ? route.summary : summary) || {};
+  const duration = route.durationSeconds ?? route.duration ?? metrics.totalDurationSeconds;
+  const distance = route.distanceMeters ?? route.distance ?? metrics.totalDistanceMeters;
+  const timeSavedSeconds = route.timeSavedSeconds ?? metrics.timeSavedSeconds;
+
+  const rawSteps = route.steps || [];
+  const steps = rawSteps.map(step => {
+    const dist = stepDistanceMeters(step);
+    return {
+      ...step,
+      distanceText: dist != null ? distanceText(dist) : step.distance
+    };
+  });
+
+  return {
+    ...route,
+    id: route.routeId || route.id || `route-${index + 1}`,
+    routeId: route.routeId || route.id || `route-${index + 1}`,
+    coordinates: geometry,
+    segments,
+    summary: (route.name || route.summaryText || (typeof route.summary === 'string' ? route.summary : null) || (segments[0]?.roadName && segments[0]?.roadName !== 'Unnamed road' ? `Via ${segments[0].roadName}` : `Route ${index + 1}`)).replace(/^via\s+via\s+/i, 'Via ').trim(),
+    duration,
+    distance,
+    durationText: formatDuration(duration) || 'ETA unavailable',
+    distanceText: distanceText(distance),
+    timeSavedSeconds,
+    traditionalDurationSeconds: route.traditionalDurationSeconds ?? metrics.traditionalDurationSeconds,
+    traditionalDurationText: formatDuration(route.traditionalDurationSeconds ?? metrics.traditionalDurationSeconds) || 'ETA unavailable',
+    timeSavedText: route.timeSavedText || (timeSavedSeconds > 0 ? `${formatDuration(timeSavedSeconds)} saved` : 'Traffic-aware route'),
+    durationSource: route.durationSource || metrics.durationSource || 'routing-provider',
+    trafficAdjusted: (route.durationSource || metrics.durationSource) === 'routing-provider-plus-live-traffic',
+    steps,
+  };
+}
+
+export function normalizeResponse(data) {
+  data = data?.data || data || {};
+  const summary = data.summary || {};
+  const rawRoutes = Array.isArray(data.routes) && data.routes.length ? data.routes : [{
+    routeId: data.routeId || 'dynamic-route-1', segments: data.segments || data.chunks || [],
+    coordinates: data.coordinates || data.geometry?.coordinates, steps: data.steps || [],
+  }];
+  const routes = rawRoutes.map((route, index) => normalizeRoute(route, index, data.segments || data.chunks, summary)).filter((route) => route.coordinates.length >= 2);
+  if (!routes.length) throw new Error('The routing service returned no usable road geometry. Please try another destination.');
+  return { ...data, success: true, summary, routes, selectedRouteId: data.selectedRouteId || data.routeId || routes[0].routeId };
+}
 
 export const directionService = {
-  async getDirections(fromCoords, toCoords, mode = 'car', simulatedIncident = null) {
+  async getDirections(fromCoords, toCoords, mode = 'car', { signal, simulatedIncident, originName, destinationName } = {}) {
     const origin = toLatLng(fromCoords);
     const destination = toLatLng(toCoords);
-
-    if (!origin || !destination) {
-      throw new Error('Valid origin and destination coordinates are required.');
-    }
-
-    // Normalize mode for backend (car, motorcycle, pedestrian)
-    let backendMode = 'car';
-    const m = String(mode).toLowerCase();
-    if (m.includes('walk') || m.includes('pedestrian') || m.includes('foot')) {
-      backendMode = 'pedestrian';
-    } else if (m.includes('bike') || m.includes('motorcycle') || m.includes('cycle') || m.includes('two')) {
-      backendMode = 'motorcycle';
-    } else {
-      backendMode = 'car';
-    }
-
-    const payload = {
-      origin: { lat: origin.lat, lng: origin.lng },
-      destination: { lat: destination.lat, lng: destination.lng },
-      mode: backendMode,
-      simulatedIncident: simulatedIncident || undefined
-    };
-
-    // Call dynamic directions endpoint on backend
-    const res = await api.post('/api/directions/dynamic', payload);
-    const data = res.data || res;
-
-    // Collect all road coordinates from the chunks
-    const chunks = data.chunks || [];
-    const allCoordinates = [];
-
-    chunks.forEach(chunk => {
-      if (Array.isArray(chunk.coordinates)) {
-        chunk.coordinates.forEach(pt => {
-          const leafPt = toLeafletPoint(pt);
-          if (leafPt) {
-            allCoordinates.push(leafPt);
-          }
-        });
-      }
-    });
-
-    // Fallback coordinates if chunk coordinates are empty
-    const fallbackCoords = [
-      [origin.lat, origin.lng],
-      [destination.lat, destination.lng]
-    ];
-
-    const totalDistMeters = data.summary?.totalDistanceMeters || 0;
-    const totalDurationSecs = data.summary?.totalDurationSeconds || 0;
-    const tradDurationSecs = data.summary?.traditionalDurationSeconds || 0;
-    const timeSavedSecs = data.summary?.timeSavedSeconds || 0;
-
-    const formattedSteps = (data.steps || []).map((s, idx) => ({
-      instruction: s.instruction,
-      distanceText: s.distance || `${Math.round(totalDistMeters / (data.steps.length || 1))}m`,
-      name: s.roadName || '',
-      type: idx === 0 ? 'depart' : (idx === data.steps.length - 1 ? 'arrive' : 'turn'),
-      modifier: ''
-    }));
-
-    const primaryRoute = {
-      id: 'dynamic-route-1',
-      summary: chunks[0]?.roadName ? `Dynamic Route via ${chunks[0].roadName}` : 'Dynamic Route',
-      distance: totalDistMeters,
-      duration: totalDurationSecs,
-      distanceText: totalDistMeters >= 1000 ? `${(totalDistMeters / 1000).toFixed(1)} km` : `${totalDistMeters} m`,
-      durationText: totalDurationSecs >= 60 ? `${Math.ceil(totalDurationSecs / 60)} min` : `${totalDurationSecs} s`,
-      traditionalDurationText: tradDurationSecs >= 60 ? `${Math.ceil(tradDurationSecs / 60)} min` : `${tradDurationSecs} s`,
-      timeSavedText: timeSavedSecs > 0 ? `${Math.ceil(timeSavedSecs / 60)} min saved` : 'Optimal Route',
-      timeSavedSeconds: timeSavedSecs,
-      traditionalDurationSeconds: tradDurationSecs,
-      coordinates: allCoordinates.length > 0 ? allCoordinates : fallbackCoords,
-      steps: formattedSteps,
-      chunks: chunks
-    };
-
-    return {
-      success: true,
-      summary: data.summary,
-      chunks: chunks,
-      steps: data.steps,
-      routes: [primaryRoute]
-    };
+    if (!origin || !destination) throw new Error('Valid origin and destination coordinates are required.');
+    const backendMode = normalizeTravelMode(mode);
+    const data = await api.post('/api/directions/dynamic', {
+      origin: { lat: origin.lat, lng: origin.lng }, destination: { lat: destination.lat, lng: destination.lng }, mode: backendMode,
+      originName: typeof originName === 'string' ? originName.trim() : '',
+      destinationName: typeof destinationName === 'string' ? destinationName.trim() : '',
+      simulatedIncident: simulatedIncident || undefined,
+    }, { signal });
+    return normalizeResponse(data);
   },
 };

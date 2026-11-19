@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — Route History Controller
+ * ChunkFlow AI — Route History Controller
  * Member 3: Backend Integration & Microservices
  */
 
@@ -44,9 +44,19 @@ async function remove(req, res, next) {
   }
 }
 
+async function clear(req, res, next) {
+  try {
+    const result = await historyService.clearRouteHistory(req.user.id);
+    return sendSuccess(res, result, 'Route history cleared', 200);
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   list,
   create,
   getById,
-  remove
+  remove,
+  clear
 };

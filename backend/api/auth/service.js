@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — Authentication Service
+ * ChunkFlow AI — Authentication Service
  * Member 3: Backend Integration & Microservices
  */
 

@@ -1,67 +1,118 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMap } from '../../context/MapContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { TILE_LAYERS, DEFAULT_COORDINATES } from '../../utils/constants.js';
 import { mapService } from '../../services/mapService.js';
-import { toLeafletPoint, toLatLng, isValidLatLng } from '../../utils/coordinates.js';
+import { toLeafletPoint, toLatLng } from '../../utils/coordinates.js';
+import { getTrafficStyle } from '../../utils/traffic.js';
+import { formatDistance } from '../../utils/geo.js';
 import MapControls from './MapControls.jsx';
+import SegmentDetails from './SegmentDetails.jsx';
 
-// Generate custom SVG DivIcon for places
-function createPlaceIcon(category = 'place', isSelected = false) {
-  let bgColor = isSelected ? '#ff5d61' : '#63e7ee';
-  let glowColor = isSelected ? 'rgba(255, 93, 97, 0.7)' : 'rgba(99, 231, 238, 0.7)';
-  let size = isSelected ? 36 : 28;
+// Vibrant category badge colors matching Figma & img_10.png
+const CATEGORY_COLORS = {
+  restaurant: '#f97316',
+  food: '#f97316',
+  cafe: '#d97706',
+  coffee: '#d97706',
+  hospital: '#ef4444',
+  clinic: '#ef4444',
+  pharmacy: '#10b981',
+  chemist: '#10b981',
+  atm: '#0ea5e9',
+  bank: '#0ea5e9',
+  fuel: '#8b5cf6',
+  petrol: '#8b5cf6',
+  bus: '#eab308',
+  police: '#1e40af'
+};
 
-  const svg = `
-    <div style="
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: ${size}px;
-      height: ${size}px;
-      background: ${bgColor};
-      border: 2px solid #090c0f;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      box-shadow: 0 0 12px ${glowColor};
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    ">
-      <div style="
-        width: ${size / 3.2}px;
-        height: ${size / 3.2}px;
-        background: #090c0f;
-        border-radius: 50%;
-        transform: rotate(45deg);
-      "></div>
-    </div>
-  `;
+function getPlaceColor(place) {
+  const cat = (place?.category || place?.type || '').toLowerCase();
+  for (const [key, color] of Object.entries(CATEGORY_COLORS)) {
+    if (cat.includes(key)) return color;
+  }
+  return '#1677ff';
+}
 
+function createPlaceIcon(place, isSelected = false) {
+  const isHospital =
+    (place?.category || place?.type || '').toLowerCase().includes('hospital') ||
+    (place?.name || '').toLowerCase().includes('hospital') ||
+    (place?.tags?.amenity || '').toLowerCase().includes('hospital');
+
+  if (isHospital) {
+    const size = isSelected ? 24 : 19;
+    return L.divIcon({
+      className: 'custom-hospital-marker',
+      html: `
+        <div style="
+          width: ${size}px;
+          height: ${size}px;
+          background: #dc2626;
+          border: 2px solid #ffffff;
+          border-radius: 50%;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        ">
+          <svg width="${size * 0.5}" height="${size * 0.5}" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </div>
+      `,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2]
+    });
+  }
+
+  const color = isSelected ? '#ff5d61' : getPlaceColor(place);
+  const size = isSelected ? 22 : 18;
   return L.divIcon({
-    className: 'tactical-map-marker',
-    html: svg,
+    className: 'custom-poi-marker',
+    html: `
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        background: ${color};
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      ">
+        <span style="
+          width: ${size * 0.35}px;
+          height: ${size * 0.35}px;
+          background: #ffffff;
+          border-radius: 50%;
+          display: block;
+        "></span>
+      </div>
+    `,
     iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size],
+    iconAnchor: [size / 2, size / 2]
   });
 }
 
-// Generate animated pulsing icon for current user location
 function createCurrentLocationIcon() {
-  const html = `
-    <div class="relative flex items-center justify-center w-8 h-8 pointer-events-none">
-      <div class="absolute w-8 h-8 rounded-full bg-[#63e7ee]/25 animate-pulse-ring"></div>
-      <div class="w-3.5 h-3.5 rounded-full bg-[#63e7ee] border-2 border-white shadow-[0_0_12px_#63e7ee]"></div>
-    </div>
-  `;
   return L.divIcon({
     className: 'current-location-marker',
-    html,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    html: `
+      <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+        <span style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: #20c7c9; opacity: 0.35; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+        <span style="width: 14px; height: 14px; border-radius: 50%; background: #1677ff; border: 2.5px solid #ffffff; box-shadow: 0 0 10px rgba(22,119,255,0.6);"></span>
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
   });
 }
 
@@ -70,291 +121,304 @@ export default function MapView() {
   const mapRef = useRef(null);
   const tileLayerRef = useRef(null);
   const markersLayerRef = useRef(null);
-  const routeLayerRef = useRef(null);
+  const routeBaseRef = useRef(null);
+  const segmentLayerRef = useRef(new Map());
+  const chunkMarkersLayerRef = useRef(null);
   const userLocationLayerRef = useRef(null);
+  const fittedRouteRef = useRef(null);
 
+  const [selectedSegment, setSelectedSegment] = useState(null);
   const {
     setMapInstance,
     center,
     zoom,
     activeLayer,
-    setActiveLayer,
     selectedPlace,
     selectPlace,
     searchResults,
     nearbyResults,
     routeData,
+    selectedRouteId,
     userLocation,
-    currentLocation,
+    currentLocation
   } = useMap();
 
   const { theme } = useTheme();
 
-  // Initialize Map
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+  const activeRoute = useMemo(
+    () =>
+      routeData?.routes?.find(
+        (route) => (route.routeId || route.id) === (selectedRouteId || routeData?.selectedRouteId)
+      ) || routeData?.routes?.[0] || null,
+    [routeData, selectedRouteId]
+  );
 
-    const initialLayer = theme === 'dark' ? TILE_LAYERS.dark : TILE_LAYERS.osm;
-    if (theme === 'dark') {
-      setActiveLayer('dark');
+  // Initialize Leaflet Map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return undefined;
+
+    if (mapContainerRef.current._leaflet_id) {
+      delete mapContainerRef.current._leaflet_id;
     }
 
-    const initCenter = toLeafletPoint(center) || [DEFAULT_COORDINATES.lat, DEFAULT_COORDINATES.lon || DEFAULT_COORDINATES.lng];
+    // OSM is the neutral default in both app themes. A saved user selection is
+    // applied below through activeLayer, independently of the UI theme.
+    const initialLayer = TILE_LAYERS.osm;
 
     const map = L.map(mapContainerRef.current, {
-      center: initCenter,
+      center: toLeafletPoint(center) || [DEFAULT_COORDINATES.lat, DEFAULT_COORDINATES.lon],
       zoom: zoom || DEFAULT_COORDINATES.zoom,
       zoomControl: false,
-      attributionControl: true,
+      attributionControl: false,
+      preferCanvas: true
     });
 
-    const tileLayer = L.tileLayer(initialLayer.url, {
+    L.control.attribution({ position: 'bottomleft' }).addTo(map);
+
+    tileLayerRef.current = L.tileLayer(initialLayer.url, {
       attribution: initialLayer.attribution,
       maxZoom: initialLayer.maxZoom,
-      subdomains: initialLayer.subdomains || 'abcd',
+      subdomains: initialLayer.subdomains || 'abcd'
     }).addTo(map);
 
-    tileLayerRef.current = tileLayer;
-
-    // Feature group layers
     markersLayerRef.current = L.featureGroup().addTo(map);
-    routeLayerRef.current = L.featureGroup().addTo(map);
+    routeBaseRef.current = L.featureGroup().addTo(map);
+    chunkMarkersLayerRef.current = L.featureGroup().addTo(map);
     userLocationLayerRef.current = L.layerGroup().addTo(map);
 
-    // Map Click: reverse geocode to select location
-    map.on('click', async (e) => {
-      const { lat, lng } = e.latlng;
+    map.on('click', async (event) => {
       try {
-        const place = await mapService.getPlaceDetails({ lat, lng, lon: lng });
-        if (place) {
-          selectPlace(place);
-        }
-      } catch (err) {
-        console.warn('Reverse geocode on map click failed:', err.message);
+        const place = await mapService.getPlaceDetails({
+          lat: event.latlng.lat,
+          lng: event.latlng.lng,
+          lon: event.latlng.lng
+        });
+        if (place) selectPlace(place);
+      } catch {
+        /* Map stays usable when reverse geocoding fails */
       }
     });
+
+    const observer = new ResizeObserver(() => map.invalidateSize({ pan: false }));
+    observer.observe(mapContainerRef.current);
 
     mapRef.current = map;
     setMapInstance(map);
 
-    // Resize handling
-    const resizeObserver = new ResizeObserver(() => {
-      map.invalidateSize();
-    });
-    resizeObserver.observe(mapContainerRef.current);
-
     return () => {
-      resizeObserver.disconnect();
+      observer.disconnect();
       map.remove();
       mapRef.current = null;
+      segmentLayerRef.current.clear();
     };
   }, []);
 
-  // Synchronize active layer when theme is toggled
+  // Basemap selection is user-controlled and does not follow the app theme.
   useEffect(() => {
-    if (!mapRef.current) return;
-    if (theme === 'dark' && activeLayer === 'osm') {
-      setActiveLayer('dark');
-    } else if (theme === 'light' && activeLayer === 'dark') {
-      setActiveLayer('osm');
+    const requested = TILE_LAYERS[activeLayer];
+    const config = requested?.available === false ? TILE_LAYERS.osm : (requested || TILE_LAYERS.osm);
+    if (tileLayerRef.current && config) {
+      tileLayerRef.current.setUrl(config.url);
+      tileLayerRef.current.options.maxZoom = config.maxZoom;
+      tileLayerRef.current.options.attribution = config.attribution;
     }
-  }, [theme]);
-
-  // Update Tile Layer when activeLayer changes
-  useEffect(() => {
-    if (!mapRef.current || !tileLayerRef.current) return;
-
-    const layerConfig = TILE_LAYERS[activeLayer] || TILE_LAYERS.osm;
-    if (layerConfig.subdomains && tileLayerRef.current.options) {
-      tileLayerRef.current.options.subdomains = layerConfig.subdomains;
-    }
-    tileLayerRef.current.setUrl(layerConfig.url);
   }, [activeLayer]);
 
-  // Update Live User Location Marker
+  // User location marker
   useEffect(() => {
-    if (!mapRef.current || !userLocationLayerRef.current) return;
-
+    if (!userLocationLayerRef.current) return;
     userLocationLayerRef.current.clearLayers();
+    const location = userLocation || currentLocation;
+    const point = toLatLng(location);
+    if (!point) return;
 
-    const activeLoc = userLocation || currentLocation;
-    const pt = toLatLng(activeLoc);
+    userLocationLayerRef.current.addLayer(
+      L.marker([point.lat, point.lng], { icon: createCurrentLocationIcon(), zIndexOffset: 1000 })
+    );
 
-    if (pt) {
-      const locMarker = L.marker([pt.lat, pt.lng], {
-        icon: createCurrentLocationIcon(),
-        zIndexOffset: 1000,
-      });
-
-      locMarker.bindTooltip(
-        `<div class="font-mono text-xs text-[#63e7ee] font-semibold py-0.5 px-1">CURRENT GPS POSITION</div>`,
-        { direction: 'top', offset: [0, -16] }
+    // Only draw accuracy ring if high accuracy GPS (< 80m) to prevent huge circle obscuring map
+    if (location?.accuracy > 0 && location.accuracy < 80) {
+      userLocationLayerRef.current.addLayer(
+        L.circle([point.lat, point.lng], {
+          radius: location.accuracy,
+          color: theme === 'dark' ? '#20c7c9' : '#1677ff',
+          weight: 1.5,
+          opacity: 0.5,
+          fillOpacity: 0.08
+        })
       );
-
-      userLocationLayerRef.current.addLayer(locMarker);
-
-      // Add accuracy circle if accuracy is known and reasonable (< 3000m)
-      const acc = activeLoc?.accuracy;
-      if (acc && acc > 0 && acc < 3000) {
-        const circle = L.circle([pt.lat, pt.lng], {
-          radius: acc,
-          color: '#3b82f6',
-          weight: 1,
-          opacity: 0.4,
-          fillColor: '#60a5fa',
-          fillOpacity: 0.1,
-        });
-        userLocationLayerRef.current.addLayer(circle);
-      }
     }
-  }, [userLocation, currentLocation]);
+  }, [userLocation, currentLocation, theme]);
 
-  // Update Markers (SearchResults, NearbyResults, SelectedPlace)
+  // POI & Search Markers
   useEffect(() => {
-    if (!mapRef.current || !markersLayerRef.current) return;
-
+    if (!markersLayerRef.current) return;
     markersLayerRef.current.clearLayers();
-
-    // If an active route is showing, avoid cluttering the map with unrelated place pins
-    const isRouteActive = Boolean(routeData?.routes && routeData.routes.length > 0);
-
-    const placesToShow = [];
-
-    // Search results markers
-    if (searchResults && searchResults.length > 0) {
-      placesToShow.push(...searchResults);
+    const isRouteActive = Boolean(activeRoute);
+    const places = [...(searchResults || []), ...(nearbyResults || [])];
+    if (selectedPlace && !isRouteActive && !places.some((place) => place.id === selectedPlace.id)) {
+      places.push(selectedPlace);
     }
 
-    // Nearby results markers
-    if (nearbyResults && nearbyResults.length > 0) {
-      placesToShow.push(...nearbyResults);
-    }
-
-    // Add selected place if not already in list and no route is active
-    if (selectedPlace && !isRouteActive && !placesToShow.some(p => p.id === selectedPlace.id)) {
-      placesToShow.push(selectedPlace);
-    }
-
-    placesToShow.forEach((place) => {
-      const pt = toLatLng(place);
-      if (!pt) return;
-
-      const isSelected = selectedPlace && selectedPlace.id === place.id;
-      const marker = L.marker([pt.lat, pt.lng], {
-        icon: createPlaceIcon(place.category, isSelected),
-        zIndexOffset: isSelected ? 500 : 100,
+    places.forEach((place) => {
+      const point = toLatLng(place);
+      if (!point) return;
+      const marker = L.marker([point.lat, point.lng], {
+        icon: createPlaceIcon(place, selectedPlace?.id === place.id),
+        zIndexOffset: selectedPlace?.id === place.id ? 500 : 100
       });
-
-      marker.on('click', () => {
-        selectPlace(place);
+      marker.on('click', () => selectPlace(place));
+      marker.bindTooltip(place.name || place.display_name?.split(',')[0] || 'Location', {
+        direction: 'top',
+        offset: [0, -20],
+        className: 'chunk-badge'
       });
-
-      marker.bindTooltip(
-        `<div class="font-medium text-xs py-0.5 px-1">${place.name}</div>`,
-        { direction: 'top', offset: [0, -28] }
-      );
-
       markersLayerRef.current.addLayer(marker);
     });
-  }, [searchResults, nearbyResults, selectedPlace, selectPlace, routeData]);
+  }, [searchResults, nearbyResults, selectedPlace, selectPlace, activeRoute]);
 
-  // Update Route Polyline & Endpoints
+  // Route Casing & Fitting
   useEffect(() => {
-    if (!mapRef.current || !routeLayerRef.current) return;
+    if (!routeBaseRef.current) return;
+    routeBaseRef.current.clearLayers();
+    if (!activeRoute?.coordinates || activeRoute.coordinates.length < 2) return;
 
-    routeLayerRef.current.clearLayers();
+    const coords = activeRoute.coordinates;
+    const casingColor = theme === 'dark' ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.85)';
+    routeBaseRef.current.addLayer(
+      L.polyline(coords, {
+        color: casingColor,
+        weight: 12,
+        opacity: 0.96,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+      })
+    );
 
-    if (!routeData || !routeData.routes || routeData.routes.length === 0) return;
+    // Origin marker (Green)
+    routeBaseRef.current.addLayer(
+      L.circleMarker(coords[0], {
+        pane: 'markerPane',
+        radius: 8,
+        fillColor: '#10b981',
+        color: '#ffffff',
+        weight: 2.5,
+        fillOpacity: 1,
+        interactive: false
+      })
+    );
 
-    const primaryRoute = routeData.routes[0];
-    if (!primaryRoute.coordinates || primaryRoute.coordinates.length === 0) return;
+    // Destination marker (Red)
+    routeBaseRef.current.addLayer(
+      L.circleMarker(coords[coords.length - 1], {
+        pane: 'markerPane',
+        radius: 9,
+        fillColor: '#ef4444',
+        color: '#ffffff',
+        weight: 2.5,
+        fillOpacity: 1,
+        interactive: false
+      })
+    );
 
-    // Convert coordinates to standard Leaflet points
-    const leafletCoords = primaryRoute.coordinates.map(c => toLeafletPoint(c)).filter(Boolean);
-    if (leafletCoords.length < 2) return;
-
-    // Background border casing for polyline for high contrast
-    const casing = L.polyline(leafletCoords, {
-      color: '#090c0f',
-      weight: 8,
-      opacity: 0.9,
-      lineCap: 'round',
-      lineJoin: 'round',
-    });
-    routeLayerRef.current.addLayer(casing);
-
-    // If chunkflow chunks with congestion colors are present, render multi-color segments along the road
-    const chunks = routeData.chunks || primaryRoute.chunks;
-    if (chunks && chunks.length > 0) {
-      chunks.forEach(chunk => {
-        if (chunk.coordinates && chunk.coordinates.length > 0) {
-          const chunkPoints = chunk.coordinates.map(c => toLeafletPoint(c)).filter(Boolean);
-          if (chunkPoints.length >= 2) {
-            const chunkPoly = L.polyline(chunkPoints, {
-              color: chunk.color || '#62eef6',
-              weight: 5,
-              opacity: 1,
-              lineCap: 'round',
-              lineJoin: 'round',
-            });
-            chunkPoly.bindTooltip(
-              `<div class="font-mono text-xs"><b>${chunk.chunkId}</b>: ${chunk.predictedSpeedKmh || 40} km/h (${(chunk.congestionLevel || 'normal').toUpperCase()})</div>`,
-              { direction: 'top', sticky: true }
-            );
-            routeLayerRef.current.addLayer(chunkPoly);
-          }
-        }
+    const routeKey = activeRoute.routeId || activeRoute.id;
+    if (routeKey !== fittedRouteRef.current) {
+      mapRef.current?.fitBounds(L.latLngBounds(coords), {
+        paddingTopLeft: [76, 76],
+        paddingBottomRight: [76, 156],
+        maxZoom: 16
       });
-    } else {
-      // Foreground active polyline in cyber cyan
-      const polyline = L.polyline(leafletCoords, {
-        color: '#62eef6',
-        weight: 5,
+      fittedRouteRef.current = routeKey;
+    }
+  }, [activeRoute, theme]);
+
+  // Multi-colored ChunkFlow Segments & Division Points
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (chunkMarkersLayerRef.current) chunkMarkersLayerRef.current.clearLayers();
+
+    const segments = activeRoute?.segments || [];
+    const next = new Map(
+      segments.map((segment, index) => [String(segment.segmentId || segment.id || index), { segment, index }])
+    );
+
+    segmentLayerRef.current.forEach((layer, key) => {
+      if (!next.has(key)) {
+        mapRef.current.removeLayer(layer);
+        segmentLayerRef.current.delete(key);
+      }
+    });
+
+    next.forEach(({ segment, index }, key) => {
+      const style = getTrafficStyle(segment);
+      // Neutral means no verified segment-level traffic. Do not turn missing
+      // data into the app's normal route color, which reads as a traffic claim.
+      const color = style.color;
+
+      const options = {
+        color,
+        weight: 8,
         opacity: 1,
         lineCap: 'round',
         lineJoin: 'round',
-      });
-      routeLayerRef.current.addLayer(polyline);
-    }
+        dashArray: style.trafficClass === 'unknown' ? '7 7' : null
+      };
 
-    // Start point pin (tactical green ORIGIN)
-    const startCoord = leafletCoords[0];
-    const startPin = L.circleMarker(startCoord, {
-      radius: 8,
-      fillColor: '#61dfab',
-      color: '#090c0f',
-      weight: 2.5,
-      fillOpacity: 1,
-      zIndexOffset: 800,
-    }).bindTooltip('ORIGIN', { permanent: false, direction: 'top', className: 'font-mono text-[10px]' });
+      const existing = segmentLayerRef.current.get(key);
+      if (existing) {
+        existing.setLatLngs(segment.coordinates);
+        existing.setStyle(options);
+        existing.off('click');
+        existing.on('click', () => setSelectedSegment(segment));
+      } else {
+        const layer = L.polyline(segment.coordinates, options).addTo(mapRef.current);
+        layer.on('click', () => setSelectedSegment(segment));
+        layer.bindTooltip(
+          `<strong>${segment.roadName || 'Segment'}</strong> • ${formatDistance((segment.lengthMeters || 0) / 1000)} (${style.label})`,
+          { sticky: true, className: 'chunk-badge' }
+        );
+        segmentLayerRef.current.set(key, layer);
+      }
 
-    // End point pin (tactical red DESTINATION)
-    const endCoord = leafletCoords[leafletCoords.length - 1];
-    const endPin = L.circleMarker(endCoord, {
-      radius: 9,
-      fillColor: '#ff5d61',
-      color: '#090c0f',
-      weight: 2.5,
-      fillOpacity: 1,
-      zIndexOffset: 800,
-    }).bindTooltip('DESTINATION', { permanent: false, direction: 'top', className: 'font-mono text-[10px]' });
-
-    routeLayerRef.current.addLayer(startPin);
-    routeLayerRef.current.addLayer(endPin);
-
-    // Auto-fit route in viewport with margin
-    const bounds = L.latLngBounds(leafletCoords);
-    mapRef.current.fitBounds(bounds, {
-      paddingTopLeft: [70, 70],
-      paddingBottomRight: [70, 70],
-      maxZoom: 16,
+      // A segment boundary is a provider maneuver/leg boundary, not a synthetic
+      // distance chunk. Start/destination have their own prominent markers.
+      if (index > 0 && segment.coordinates && segment.coordinates.length > 0 && chunkMarkersLayerRef.current) {
+        const firstPt = segment.coordinates[0];
+        chunkMarkersLayerRef.current.addLayer(
+          L.circleMarker(firstPt, {
+            radius: 3.5,
+            fillColor: '#ffffff',
+            color,
+            weight: 2,
+            fillOpacity: 1,
+            interactive: false
+          })
+        );
+      }
     });
-  }, [routeData]);
+
+    // This should only occur for malformed legacy responses. It is neutral and
+    // dashed, never a colored traffic assertion.
+    if (!next.size && activeRoute?.coordinates?.length >= 2) {
+      const key = '__fallback__';
+      const fallback = L.polyline(activeRoute.coordinates, {
+        color: '#788488',
+        weight: 8,
+        opacity: 1,
+        lineCap: 'round',
+        dashArray: '7 7',
+        interactive: false
+      }).addTo(mapRef.current);
+      segmentLayerRef.current.set(key, fallback);
+    }
+  }, [activeRoute?.segments, activeRoute?.coordinates, theme]);
 
   return (
     <div className="relative w-full h-full overflow-hidden select-none">
       <div ref={mapContainerRef} className="w-full h-full z-0" />
       <MapControls />
+      <SegmentDetails segment={selectedSegment} onClose={() => setSelectedSegment(null)} />
     </div>
   );
 }

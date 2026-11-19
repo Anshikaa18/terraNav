@@ -1,0 +1,6 @@
+# ChunkFlow ML Pipeline Dependencies
+numpy==1.26.4
+scipy>=1.10.0
+pandas==2.2.2
+scikit-learn==1.9.0
+joblib==1.5.3

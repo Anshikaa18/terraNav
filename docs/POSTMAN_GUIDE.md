@@ -1,4 +1,4 @@
-# TerraNav AI — Postman Testing Guide
+# ChunkFlow AI — Postman Testing Guide
 
 **Member 3: Backend Integration & Microservices**  
 **Collection File:** `postman/terranav.postman_collection.json`
@@ -10,7 +10,7 @@
 1. Open **Postman**.
 2. Click the **Import** button in the top left workspace corner.
 3. Select `d:/terraNav/postman/terranav.postman_collection.json`.
-4. The imported collection `TerraNav AI — Member 3 Complete Backend API Suite` will appear in your left sidebar.
+4. The imported collection `ChunkFlow AI — Member 3 Complete Backend API Suite` will appear in your left sidebar.
 
 ---
 

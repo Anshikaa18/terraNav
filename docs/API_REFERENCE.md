@@ -1,4 +1,4 @@
-# TerraNav AI — API Reference Documentation
+# ChunkFlow AI — API Reference Documentation
 
 **Member 3: Backend Integration, Microservices & Data Layer**  
 **Version:** 1.0.0  
@@ -30,7 +30,7 @@ Checks backend gateway status, database pool connectivity mode, and integration 
 ```json
 {
   "success": true,
-  "message": "TerraNav AI Backend API Gateway is fully operational",
+  "message": "ChunkFlow AI Backend API Gateway is fully operational",
   "data": {
     "service": "terranav-backend",
     "status": "healthy",
@@ -283,70 +283,29 @@ Updates incident status (e.g. mark `cleared`).
 
 ---
 
-## 6. Dynamic Directions Integration API
+## 6. Directions API
+
+The directions API returns provider-backed routes. It does not use the offline ChunkFlow model or static corridor graph to calculate live route costs.
 
 ### `POST /api/directions/dynamic`
-The central Member 3 integration pipeline endpoint connecting ML ChunkFlow predictions, dynamic cost graph routing, and incident rerouting.
 
-- **Auth Required:** Optional (if token is provided, route is automatically recorded into user's `route_history`).
-- **Request Body:**
-```json
-{
-  "origin": {
-    "lat": 12.9716,
-    "lng": 77.5946
-  },
-  "destination": {
-    "lat": 12.9352,
-    "lng": 77.6245
-  },
-  "mode": "car",
-  "simulatedIncident": {
-    "chunkId": "CHUNK_104",
-    "type": "accident"
-  }
-}
-```
+Optional authentication. A valid token records the route in the authenticated user's history. The request requires `origin`, `destination`, and `mode` (`car`, `motorcycle`/`bike`, `bicycle`, or `pedestrian`/`walk`). Optional `originName`, `destinationName`, and `strategy` are accepted; `provider` is the live default. ML/graph routing strategies return an explicit unavailable response until the live data and production graph prerequisites are met.
 
-- **Supported Modes:** `car`, `motorcycle`, `bike`, `pedestrian`
-- **Supported Incident Types:** `accident`, `roadblock`, `construction`, `flooding`, `heavy_traffic`, `other`
+The response contains the selected provider's route geometry, distance, duration, and maneuvers, plus traffic duration fields where the provider returned them. TomTom sections reported as `other` are rejected for a requested mode. OSRM fallback is driving only and is not substituted for another mode. Missing traffic data remains unavailable; no synthetic duration or traffic estimate is generated.
 
-- **Success Status:** `200 OK`
-- **Response Format (Exact Member 4 Contract):**
-```json
-{
-  "summary": {
-    "totalDistanceMeters": 6850,
-    "totalDurationSeconds": 1120,
-    "traditionalDurationSeconds": 1480,
-    "timeSavedSeconds": 360,
-    "mode": "car"
-  },
-  "chunks": [
-    {
-      "chunkId": "CHUNK_101",
-      "roadName": "Hosur Main Road",
-      "lengthMeters": 350,
-      "predictedSpeedKmh": 42.5,
-      "congestionLevel": "low",
-      "color": "#10b981",
-      "coordinates": [
-        [12.971600, 77.594600],
-        [12.968000, 77.596000]
-      ]
-    }
-  ],
-  "steps": [
-    {
-      "instruction": "Head south on Hosur Main Road towards 100 Feet Road Corridor",
-      "distance": "350m"
-    }
-  ]
-}
-```
+### `POST /api/directions/reroute`
+
+Accepts current position/node and destination with optional `tripId` and timestamp. This endpoint is an evaluation API; the application does not currently provide a fully integrated production active-trip ML rerouting lifecycle.
+
+### `POST /api/directions/traffic-update`
+
+Accepts a non-empty `updates` array (or an array body). Requires the `x-terranav-traffic-token` header matching `TERRANAV_TRAFFIC_UPDATE_TOKEN`. If no trusted token is configured, ingestion is disabled. Updates must carry a source, a recent timezone-aware timestamp, and valid measured speed/closure fields. Do not submit synthetic values as live traffic.
+
+### `GET /api/directions/network`
+
+Returns the available research graph metadata and its limitations. It is not a claim of production road-network coverage.
 
 ---
-
 ## 7. External Geospatial & POI Services
 
 ### `GET /api/services/geocode?q=MG+Road+Bengaluru&limit=5`
@@ -387,3 +346,4 @@ All error responses adhere to a consistent structure:
 | `409` | Conflict | Duplicate unique key (e.g. email or username already registered) |
 | `500` | Internal Server Error | Unexpected server error (stack trace concealed in production) |
 | `502` | Bad Gateway | Upstream geospatial or navigation provider failure |
+

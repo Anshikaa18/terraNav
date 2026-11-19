@@ -1,118 +1,78 @@
-# ==============================================================================
-# TerraNav AI — Root Git Ignore Configuration
-# Covers Node.js/Express Backend, React/Vite Frontend, and Geospatial Data Layer
-# ==============================================================================
-
-# ------------------------------------------------------------------------------
 # Dependencies
-# ------------------------------------------------------------------------------
 node_modules/
-*/node_modules/
 .pnp
 .pnp.js
 
-# ------------------------------------------------------------------------------
-# Environment Variables & Sensitive Credentials
-# (Protects MySQL passwords, JWT secrets, CARTO API keys, and private configs)
-# ------------------------------------------------------------------------------
+# Environment Variables & Secrets (CRITICAL: Never commit .env files)
 .env
 .env.*
-*.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Explicitly keep template files trackable
 !.env.example
+*.env
+*.env.*
 !*.env.example
-!backend/.env.example
-!frontend/.env.example
 
-# ------------------------------------------------------------------------------
-# Build & Production Outputs
-# ------------------------------------------------------------------------------
+# Production & Build outputs
 dist/
-*/dist/
 dist-ssr/
-*/dist-ssr/
 build/
-*/build/
-out/
-*/out/
-*.tsbuildinfo
+*.local
 
-# ------------------------------------------------------------------------------
-# Logs & Process Outputs
-# ------------------------------------------------------------------------------
-logs/
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Logs & Traces
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
-*.pid
-*.seed
-*.pid.lock
+.playwright/
+.playwright-cli/
+.system_generated/
 
-# ------------------------------------------------------------------------------
-# Testing & Code Coverage
-# ------------------------------------------------------------------------------
-coverage/
-*/coverage/
-.nyc_output/
-*.lcov
-test-results/
-
-# ------------------------------------------------------------------------------
-# IDE & Code Editor Files
-# ------------------------------------------------------------------------------
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
+# Editor & IDE artifacts
+.vscode/
 .idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-*.swo
-*.swp
-*~
-
-# ------------------------------------------------------------------------------
-# Operating System Artifacts
-# ------------------------------------------------------------------------------
 .DS_Store
-.DS_Store?
-._*
 Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
 
-# ------------------------------------------------------------------------------
-# Python (Virtual Environments & Bytecode Caches)
-# ------------------------------------------------------------------------------
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-venv/
-env/
-ENV/
-*.egg-info/
-.pytest_cache/
-
-# ------------------------------------------------------------------------------
-# Local Migration Backups & Scratch Artifacts
-# ------------------------------------------------------------------------------
-frontend-old/
-from-chetan/
-project-structure.txt
-train/
-_unrelated/
+# Caches & Temporary Scratch
+.eslintcache
+.stylelintcache
+scratch_*.json
 *.tmp
-*.temp
+graphify-out/
+
+# Release archives
+*.zip
+*.tar.gz
+*.tgz

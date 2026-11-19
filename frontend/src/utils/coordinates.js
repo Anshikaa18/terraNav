@@ -1,5 +1,5 @@
 /**
- * TerraNav Centralized Coordinate Conversion Utilities
+ * ChunkFlow Centralized Coordinate Conversion Utilities
  * 
  * Conventions:
  * - Application coordinate object: { lat: number, lng: number }

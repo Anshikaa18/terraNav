@@ -10,7 +10,6 @@ import {
   Clock,
   MapPin,
   Check,
-  Accessibility,
   Copy,
   ExternalLink,
 } from 'lucide-react';
@@ -44,7 +43,7 @@ export default function PlaceDetailsPanel({ place = null, onClose = null }) {
       try {
         await navigator.share({
           title: activePlace.name,
-          text: `Check out ${activePlace.name} on TerraNav`,
+          text: `Check out ${activePlace.name} on ChunkFlow`,
           url: shareUrl,
         });
         return;
@@ -87,36 +86,37 @@ export default function PlaceDetailsPanel({ place = null, onClose = null }) {
 
   return (
     <>
-      <div className="w-full flex flex-col bg-[#11171b]/98 backdrop-blur-md border border-[#29353a] shadow-[0_16px_40px_rgba(0,0,0,0.7)] h-full overflow-y-auto select-none">
+      <div className="w-full flex flex-col bg-[var(--surface-raised)] backdrop-blur-md border border-[var(--border)] shadow-[var(--shadow-lg)] h-full overflow-y-auto select-none rounded-2xl">
         {/* Header */}
-        <div className="p-4 border-b border-[#29353a] bg-[#162024]/60 flex items-start justify-between">
+        <div className="p-4 border-b border-[var(--border)] bg-[var(--surface-subtle)] flex items-start justify-between">
           <div className="flex-1 min-w-0 pr-2">
-            <span className="inline-block font-mono text-[9px] border border-[#48585b] px-2 py-0.5 rounded text-[#ffbf5c] bg-[#ffbf5c]/10 mb-1.5 uppercase">
+            <span className="inline-block text-[10px] font-bold border border-[var(--border-strong)] px-2 py-0.5 rounded-full text-[var(--primary)] bg-[var(--primary-soft)] mb-1.5 uppercase">
               {badge.name}
             </span>
-            <h2 className="font-condensed text-2xl font-bold tracking-wide text-[#edf3f1] truncate">
+            <h2 className="text-xl font-bold tracking-tight text-[var(--text)] truncate">
               {activePlace.name}
             </h2>
             {distText && (
-              <p className="font-mono text-xs text-[#63e7ee] mt-0.5">
-                {distText} FROM CURRENT POSITION
+              <p className="text-xs font-semibold text-[var(--primary)] mt-0.5 font-mono">
+                {distText} from current location
               </p>
             )}
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded bg-[#172125] border border-[#38474b] text-[#8c9a9c] hover:text-[#edf3f1] hover:border-[#63e7ee] transition-colors"
+            aria-label="Close place details"
+            className="p-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)] hover:border-[var(--outline)] transition-colors shadow-sm"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Action Buttons Bar */}
-        <div className="grid grid-cols-3 gap-2 p-3 border-b border-[#29353a] bg-[#0d1215]/80">
+        <div className="grid grid-cols-3 gap-2 p-3 border-b border-[var(--border)] bg-[var(--surface)]">
           {/* Directions */}
           <button
             onClick={handleDirections}
-            className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded font-mono text-[11px] font-bold tracking-wider uppercase text-[#090c0f] bg-[#63e7ee] hover:bg-[#7ef1f7] border border-[#63e7ee] transition-all shadow-[0_0_10px_rgba(99,231,238,0.25)]"
+            className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[var(--primary)] hover:bg-[var(--primary-strong)] transition-all shadow-sm"
           >
             <Navigation className="w-3.5 h-3.5" />
             <span>ROUTE</span>
@@ -125,57 +125,57 @@ export default function PlaceDetailsPanel({ place = null, onClose = null }) {
           {/* Save */}
           <button
             onClick={() => setIsSaveModalOpen(true)}
-            className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded font-mono text-[11px] tracking-wider uppercase text-[#edf3f1] bg-[#172125] hover:border-[#63e7ee] border border-[#38474b] transition-all"
+            className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-semibold tracking-wider uppercase text-[var(--text)] bg-[var(--surface-subtle)] hover:border-[var(--outline)] border border-[var(--border)] transition-all"
           >
-            <Bookmark className="w-3.5 h-3.5 text-[#ffbf5c]" />
+            <Bookmark className="w-3.5 h-3.5 text-[var(--yellow)]" />
             <span>SAVE</span>
           </button>
 
           {/* Share */}
           <button
             onClick={handleShare}
-            className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded font-mono text-[11px] tracking-wider uppercase text-[#edf3f1] bg-[#172125] hover:border-[#63e7ee] border border-[#38474b] transition-all"
+            className="flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl text-xs font-semibold tracking-wider uppercase text-[var(--text)] bg-[var(--surface-subtle)] hover:border-[var(--outline)] border border-[var(--border)] transition-all"
           >
-            {shared ? <Check className="w-3.5 h-3.5 text-[#61dfab]" /> : <Share2 className="w-3.5 h-3.5 text-[#63e7ee]" />}
+            {shared ? <Check className="w-3.5 h-3.5 text-[var(--green)]" /> : <Share2 className="w-3.5 h-3.5 text-[var(--primary)]" />}
             <span>{shared ? 'COPIED' : 'SHARE'}</span>
           </button>
         </div>
 
         {/* Tactical Telemetry Spec Grid */}
-        <div className="p-4 space-y-3 font-mono text-xs">
+        <div className="p-4 space-y-3 text-xs">
           {/* Coordinates Spec Block */}
-          <div className="bg-[#0a1013]/70 border border-[#233035] p-3 rounded">
+          <div className="bg-[var(--surface-subtle)] border border-[var(--border)] p-3 rounded-xl">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[9px] text-[#8c9a9c] uppercase tracking-wider">TELEMETRY COORDS</span>
+              <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Coordinates</span>
               <button
                 onClick={handleCopyCoords}
                 title="Copy coordinates"
-                className="text-[#63e7ee] hover:text-[#fff] text-[10px] flex items-center space-x-1"
+                className="text-[var(--primary)] hover:underline text-[10px] font-bold flex items-center space-x-1"
               >
-                {copied ? <Check className="w-3 h-3 text-[#61dfab]" /> : <Copy className="w-3 h-3" />}
+                {copied ? <Check className="w-3 h-3 text-[var(--green)]" /> : <Copy className="w-3 h-3" />}
                 <span>{copied ? 'COPIED' : 'COPY'}</span>
               </button>
             </div>
-            <p className="font-mono text-xs text-[#63e7ee] font-semibold">
+            <p className="font-mono text-xs text-[var(--text)] font-semibold">
               {formatCoordinates(activePlace.lat, activePlace.lon)}
             </p>
           </div>
 
           {/* Address */}
-          <div className="bg-[#0a1013]/70 border border-[#233035] p-3 rounded">
-            <span className="text-[9px] text-[#8c9a9c] uppercase tracking-wider block mb-1">GEOCODED ADDRESS</span>
-            <p className="text-xs text-[#edf3f1] leading-relaxed">
+          <div className="bg-[var(--surface-subtle)] border border-[var(--border)] p-3 rounded-xl">
+            <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider block mb-1">Address</span>
+            <p className="text-xs text-[var(--text)] leading-relaxed font-medium">
               {activePlace.display_name}
             </p>
           </div>
 
           {/* Phone (if available) */}
           {activePlace.phone && (
-            <div className="bg-[#0a1013]/70 border border-[#233035] p-3 rounded flex items-center justify-between">
-              <span className="text-[9px] text-[#8c9a9c] uppercase tracking-wider">CONTACT</span>
+            <div className="bg-[var(--surface-subtle)] border border-[var(--border)] p-3 rounded-xl flex items-center justify-between">
+              <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Phone</span>
               <a
                 href={`tel:${activePlace.phone}`}
-                className="text-[#63e7ee] hover:underline"
+                className="text-[var(--primary)] font-semibold hover:underline"
               >
                 {activePlace.phone}
               </a>
@@ -184,13 +184,13 @@ export default function PlaceDetailsPanel({ place = null, onClose = null }) {
 
           {/* Website (if available) */}
           {activePlace.website && (
-            <div className="bg-[#0a1013]/70 border border-[#233035] p-3 rounded flex items-center justify-between">
-              <span className="text-[9px] text-[#8c9a9c] uppercase tracking-wider">ENDPOINT</span>
+            <div className="bg-[var(--surface-subtle)] border border-[var(--border)] p-3 rounded-xl flex items-center justify-between">
+              <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Website</span>
               <a
                 href={activePlace.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#63e7ee] hover:underline flex items-center space-x-1 truncate max-w-[200px]"
+                className="text-[var(--primary)] font-semibold hover:underline flex items-center space-x-1 truncate max-w-[200px]"
               >
                 <span className="truncate">{activePlace.website}</span>
                 <ExternalLink className="w-3 h-3 flex-shrink-0" />
@@ -200,9 +200,9 @@ export default function PlaceDetailsPanel({ place = null, onClose = null }) {
 
           {/* Opening Hours (if available) */}
           {activePlace.opening_hours && (
-            <div className="bg-[#0a1013]/70 border border-[#233035] p-3 rounded">
-              <span className="text-[9px] text-[#8c9a9c] uppercase tracking-wider block mb-1">SCHEDULE / HOURS</span>
-              <p className="text-xs text-[#edf3f1]">
+            <div className="bg-[var(--surface-subtle)] border border-[var(--border)] p-3 rounded-xl">
+              <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider block mb-1">Hours</span>
+              <p className="text-xs text-[var(--text)] font-medium">
                 {activePlace.opening_hours}
               </p>
             </div>

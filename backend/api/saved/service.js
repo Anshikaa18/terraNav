@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — Saved Places Service
+ * ChunkFlow AI — Saved Places Service
  * Member 3: Backend Integration & Microservices
  */
 
@@ -7,15 +7,24 @@ const db = require('../_lib/db');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../_lib/errors');
 const { isValidCoordinate } = require('../_lib/validation');
 
+function normalizeAddress(address) {
+  if (typeof address === 'string') return address.trim() || null;
+  if (!address || typeof address !== 'object' || Array.isArray(address)) return null;
+  const displayName = typeof address.display_name === 'string' ? address.display_name.trim() : '';
+  if (displayName) return displayName;
+  const parts = Object.values(address).filter((value) => typeof value === 'string' && value.trim()).map((value) => value.trim());
+  return parts.length ? parts.join(', ') : null;
+}
+
 async function listSavedPlaces(userId) {
   const [rows] = await db.execute(
-    'SELECT id, user_id, name, latitude, longitude, address, category, created_at FROM saved_places WHERE user_id = ? ORDER BY created_at DESC',
+    'SELECT id, user_id, name, latitude, longitude, address, category, collection_name, notes, created_at FROM saved_places WHERE user_id = ? ORDER BY created_at DESC',
     [userId]
   );
   return rows || [];
 }
 
-async function createSavedPlace(userId, { name, latitude, longitude, address, category }) {
+async function createSavedPlace(userId, { name, latitude, longitude, address, category, collectionName, notes }) {
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     throw new BadRequestError('Place name is required');
   }
@@ -24,12 +33,14 @@ async function createSavedPlace(userId, { name, latitude, longitude, address, ca
   }
 
   const cleanName = name.trim();
-  const cleanAddress = address ? address.trim() : null;
-  const cleanCategory = category ? category.trim() : 'favorite';
+  const cleanAddress = normalizeAddress(address);
+  const cleanCategory = typeof category === 'string' && category.trim() ? category.trim() : 'place';
+  const cleanCollectionName = typeof collectionName === 'string' && collectionName.trim() ? collectionName.trim() : 'Favorites';
+  const cleanNotes = typeof notes === 'string' && notes.trim() ? notes.trim() : null;
 
   const [result] = await db.execute(
-    'INSERT INTO saved_places (user_id, name, latitude, longitude, address, category) VALUES (?, ?, ?, ?, ?, ?)',
-    [userId, cleanName, latitude, longitude, cleanAddress, cleanCategory]
+    'INSERT INTO saved_places (user_id, name, latitude, longitude, address, category, collection_name, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [userId, cleanName, latitude, longitude, cleanAddress, cleanCategory, cleanCollectionName, cleanNotes]
   );
 
   return {
@@ -40,6 +51,8 @@ async function createSavedPlace(userId, { name, latitude, longitude, address, ca
     longitude: Number(longitude),
     address: cleanAddress,
     category: cleanCategory,
+    collectionName: cleanCollectionName,
+    notes: cleanNotes,
     createdAt: new Date().toISOString()
   };
 }
@@ -51,7 +64,7 @@ async function getSavedPlaceById(userId, placeId) {
   }
 
   const [rows] = await db.execute(
-    'SELECT id, user_id, name, latitude, longitude, address, category, created_at FROM saved_places WHERE user_id = ? AND id = ?',
+    'SELECT id, user_id, name, latitude, longitude, address, category, collection_name, notes, created_at FROM saved_places WHERE user_id = ? AND id = ?',
     [userId, id]
   );
 
@@ -116,6 +129,7 @@ async function deleteSavedPlace(userId, placeId) {
 
 module.exports = {
   listSavedPlaces,
+  normalizeAddress,
   createSavedPlace,
   getSavedPlaceById,
   updateSavedPlace,

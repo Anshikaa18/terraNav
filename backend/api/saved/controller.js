@@ -1,5 +1,5 @@
 /**
- * TerraNav AI — Saved Places Controller
+ * ChunkFlow AI — Saved Places Controller
  * Member 3: Backend Integration & Microservices
  */
 
@@ -17,13 +17,15 @@ async function list(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { name, latitude, longitude, address, category } = req.body;
+    const { name, latitude, longitude, address, category, collectionName, notes } = req.body;
     const place = await savedService.createSavedPlace(req.user.id, {
       name,
       latitude,
       longitude,
       address,
-      category
+      category,
+      collectionName,
+      notes
     });
     return sendSuccess(res, place, 'Place saved successfully', 201);
   } catch (err) {
