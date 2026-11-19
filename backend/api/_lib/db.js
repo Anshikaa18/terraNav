@@ -3,6 +3,8 @@
  * Member 3: Backend Integration & Microservices
  */
 
+const fs = require('fs');
+const path = require('path');
 const mysql = require('mysql2/promise');
 const logger = require('./logging');
 
@@ -86,7 +88,30 @@ function createPool() {
     (process.env.DB_HOST && process.env.DB_HOST.includes('aivencloud.com'));
 
   if (useSSL) {
-    config.ssl = { rejectUnauthorized: false };
+    let caCertificate = null;
+    if (process.env.DB_CA_CERT) {
+      caCertificate = process.env.DB_CA_CERT;
+    } else if (process.env.DB_CA_PATH && fs.existsSync(process.env.DB_CA_PATH)) {
+      caCertificate = fs.readFileSync(process.env.DB_CA_PATH, 'utf8');
+    } else {
+      const defaultCaPath = path.resolve(__dirname, '../../aiven-ca.pem');
+      if (fs.existsSync(defaultCaPath)) {
+        caCertificate = fs.readFileSync(defaultCaPath, 'utf8');
+      }
+    }
+
+    if (caCertificate) {
+      config.ssl = {
+        ca: caCertificate,
+        rejectUnauthorized: true
+      };
+      logger.info('MySQL SSL enabled with strict CA certificate verification');
+    } else {
+      config.ssl = {
+        rejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED === 'true'
+      };
+      logger.warn('MySQL SSL enabled (no custom CA certificate found)');
+    }
   }
 
   try {
